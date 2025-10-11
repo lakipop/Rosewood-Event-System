@@ -3,7 +3,7 @@
 
 -- Database creation (run this first if needed)
 -- CREATE DATABASE IF NOT EXISTS rosewood_events;
--- USE rosewood_events;
+-- USE `rosewood-events-db`;
 
 -- 1. Users Table
 CREATE TABLE IF NOT EXISTS users (

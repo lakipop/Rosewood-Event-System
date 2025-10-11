@@ -4,7 +4,7 @@
 -- Manual Execution: Open in MySQL Workbench and execute
 -- ==========================================
 
-USE rosewood_events;
+USE `rosewood-events-db`;
 
 -- ==========================================
 -- BASIC VIEWS (7)
@@ -89,7 +89,7 @@ SELECT
     s.service_id,
     s.service_name,
     s.category,
-    s.base_price,
+    s.unit_price,
     COUNT(es.event_service_id) as times_booked,
     SUM(es.quantity) as total_quantity_sold,
     AVG(es.agreed_price) as avg_agreed_price,
@@ -133,10 +133,10 @@ SELECT
     al.record_id,
     al.old_value,
     al.new_value,
-    al.timestamp
+    al.created_at
 FROM activity_logs al
 LEFT JOIN users u ON al.user_id = u.user_id
-ORDER BY al.timestamp DESC;
+ORDER BY al.created_at DESC;
 
 -- 7. Monthly Revenue
 DROP VIEW IF EXISTS v_monthly_revenue;
@@ -168,9 +168,9 @@ WITH service_costs AS (
     SELECT 
         s.service_id,
         s.service_name,
-        s.base_price,
-        s.base_price * 0.7 as estimated_cost,
-        s.base_price * 0.3 as estimated_profit
+        s.unit_price,
+        s.unit_price * 0.7 as estimated_cost,
+        s.unit_price * 0.3 as estimated_profit
     FROM services s
 ),
 service_bookings AS (
@@ -187,11 +187,11 @@ service_bookings AS (
 SELECT 
     sc.service_id,
     sc.service_name,
-    sc.base_price,
+    sc.unit_price,
     COALESCE(sb.bookings, 0) as bookings,
     COALESCE(sb.total_quantity, 0) as quantity_sold,
     COALESCE(sb.actual_revenue, 0) as revenue,
-    COALESCE(sb.avg_price, sc.base_price) as avg_selling_price,
+    COALESCE(sb.avg_price, sc.unit_price) as avg_selling_price,
     sc.estimated_cost,
     sc.estimated_profit,
     COALESCE(sb.actual_revenue, 0) - (sc.estimated_cost * COALESCE(sb.total_quantity, 0)) as estimated_total_profit,
