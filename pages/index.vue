@@ -96,7 +96,8 @@
               <div 
                 v-for="event in events.slice(0, 5)" 
                 :key="event.event_id"
-                class="flex items-center justify-between p-4 bg-zinc-800 rounded-lg hover:bg-zinc-700 transition"
+                @click="navigateTo(`/events/${event.event_id}`)"
+                class="flex items-center justify-between p-4 bg-zinc-800 rounded-lg hover:bg-zinc-700 transition cursor-pointer"
               >
                 <div>
                   <h3 class="text-lg font-semibold text-white">{{ event.event_name }}</h3>
@@ -138,11 +139,11 @@ const upcomingEvents = computed(() => {
 });
 
 const createEvent = () => {
-  alert('Create Event feature coming soon! For now, use the API directly.');
+  navigateTo('/events');
 };
 
 const viewAllEvents = () => {
-  alert('View All Events page coming soon! Check your events in the dashboard below.');
+  navigateTo('/events');
 };
 
 const browseServices = () => {

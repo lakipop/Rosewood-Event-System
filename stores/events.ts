@@ -75,11 +75,11 @@ export const useEventsStore = defineStore('events', {
 
   getters: {
     upcomingEvents: (state) => {
-      const today = new Date().toISOString().split('T')[0]
+      const today = new Date().toISOString().split('T')[0] || ''
       return state.events.filter(e => e.event_date >= today)
     },
     pastEvents: (state) => {
-      const today = new Date().toISOString().split('T')[0]
+      const today = new Date().toISOString().split('T')[0] || ''
       return state.events.filter(e => e.event_date < today)
     }
   }

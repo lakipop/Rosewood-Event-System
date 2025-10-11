@@ -13,6 +13,12 @@ export default defineEventHandler(async (event) => {
     }
 
     const token = authHeader.split(' ')[1];
+    if (!token) {
+      throw createError({
+        statusCode: 401,
+        message: 'Token not provided'
+      });
+    }
     const decoded = verifyToken(token) as any;
 
     // Only admin can delete services

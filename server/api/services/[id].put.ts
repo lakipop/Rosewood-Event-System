@@ -13,6 +13,12 @@ export default defineEventHandler(async (event) => {
     }
 
     const token = authHeader.split(' ')[1];
+    if (!token) {
+      throw createError({
+        statusCode: 401,
+        message: 'Invalid token format'
+      });
+    }
     const decoded = verifyToken(token) as any;
 
     // Only admin and manager can update services

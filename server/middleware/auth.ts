@@ -24,6 +24,12 @@ export default defineEventHandler(async (event) => {
   }
 
   const token = authHeader.split(' ')[1]
+  if (!token) {
+    throw createError({
+      statusCode: 401,
+      message: 'Unauthorized - token not provided'
+    })
+  }
   const decoded = verifyToken(token) as any
 
   if (!decoded) {
