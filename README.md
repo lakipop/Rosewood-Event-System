@@ -1,78 +1,98 @@
 # 🌲 Rosewood Event System
 
-A full-stack event management system for ADBMS course, demonstrating advanced MySQL database features.
+> Event management system with MySQL ADBMS features (80%) and minimal UI (20%).
 
-**Status:** ✅ 95% Complete | **Grade:** 80% Database (Complete) + 20% App (95%)
+**Developer:** ADBMS Team  | **Email:** lakindu02@gmail.com
+
+---
 
 ## 🚀 Quick Start
 
 ```bash
-# 1. Install
 npm install
-
-# 2. Setup Database
-CREATE DATABASE rosewood_events;
-mysql -u root -p rosewood_events < database/schema/create_tables.sql
-mysql -u root -p rosewood_events < database/procedures/all_procedures.sql
-mysql -u root -p rosewood_events < database/functions/all_functions.sql
-mysql -u root -p rosewood_events < database/views/all_views.sql
-mysql -u root -p rosewood_events < database/triggers/all_triggers.sql
-mysql -u root -p rosewood_events < database/indexes/all_indexes.sql
-mysql -u root -p rosewood_events < database/seed_data.sql
-
-# 3. Configure (.env file)
-DB_HOST=localhost
-DB_USER=root
-DB_PASSWORD=your_password
-DB_NAME=rosewood_events
-JWT_SECRET=your-secret-key
-
-# 4. Run
 npm run dev
 ```
 
+**URL:** http://localhost:3000
+
+---
+
+## 🔑 Login
+
+| Email | Password | Role |
+|-------|----------|------|
+| lakindu02@gmail.com | (yours) | Admin |
+| ruwan.bandara@gmail.com | Test123 | Admin |
+| dilshan.fernando@gmail.com | Test123 | Manager |
+| kamal.perera@gmail.com | Test123 | Client |
+
+---
+
 ## ✨ Features
 
-- � Event Management - Full CRUD
-- 🛠️ Services Catalog - Browse & manage
-- 💰 Payment Tracking - Record & monitor
-- 🔐 JWT Authentication - Role-based access
-- 📊 Dashboard - Statistics & overview
+### Database (80%)
+- 5 Stored Procedures
+- 7 User-Defined Functions
+- 7 Views
+- 8 Triggers
+- 30+ Indexes
+- 7 Tables
 
-## 🗄️ Database (ADBMS - 80%)
+### App (20%)
+- JWT Authentication
+- Dashboard
+- Events CRUD
+- Services Catalog
+- Payment Tracking
 
-- **7 Tables** with relationships
-- **5 Stored Procedures** - Event creation, payment processing, etc.
-- **7 Functions** - Cost calculations, balance tracking
-- **7 Views** - Event summaries, analytics
-- **8 Triggers** - Auto-logging, validation
-- **30+ Indexes** - Performance optimization
-- **100+ Sample Records**
+---
 
-## 🛠️ Tech Stack
+## 🛠️ Stack
 
-**Frontend:** Nuxt 3, Vue 3, Tailwind CSS  
-**Backend:** Nuxt Server API, JWT  
-**Database:** MySQL 8.0+  
-**Security:** Bcrypt password hashing
+- **Frontend:** Nuxt 3, Vue 3, Tailwind, Nuxt/UI
+- **Backend:** Nitro, MySQL 8+, JWT
+- **State:** Pinia
 
-## 📚 Documentation
+---
 
-See **[PROJECT_GUIDE.md](PROJECT_GUIDE.md)** for complete documentation:
-- Database features reference
-- API endpoints
-- Testing instructions
-- Demo guide
-- Future enhancements
-
-## � Structure
+## 📁 Structure
 
 ```
-database/       # SQL scripts (procedures, functions, views, triggers)
-server/api/     # Backend API endpoints
-pages/          # Frontend pages
-components/     # Vue components
-stores/         # Pinia state management
+database/          # SQL (procedures, functions, views, triggers)
+server/api/        # Backend APIs
+pages/             # Frontend (dashboard, events, services, payments)
+components/        # Vue components
+stores/            # State management
 ```
-## 🤝 Contributing
-Contributions welcome! Please open issues or PRs for improvements.
+
+---
+
+## 📚 Docs
+
+- **[PROJECT_GUIDE.md](PROJECT_GUIDE.md)** - Complete setup, API reference, testing
+- **[ANALYSIS.md](ANALYSIS.md)** - Current status, issues, roadmap
+
+---
+
+## 🎯 ADBMS Compliance
+
+| Feature | Count | Status |
+|---------|-------|--------|
+| Procedures | 5 | ✅ |
+| Functions | 7 | ✅ |
+| Views | 7 | ✅ |
+| Triggers | 8 | ✅ |
+| Indexes | 30+ | ✅ |
+
+**DB:** 80% ✅ | **UI:** 20% ✅
+
+---
+
+## 📝 Status
+
+- ✅ Database features complete
+- ✅ Backend APIs functional
+- ⚠️ UI needs Nuxt/UI component upgrade
+- ⚠️ ADBMS features not yet called from frontend
+
+See ANALYSIS.md for improvement plan.

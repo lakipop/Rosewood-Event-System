@@ -5,8 +5,10 @@
     <div class="flex">
       <AppSidebar v-if="authStore.isAuthenticated" />
       
-      <main class="flex-1 p-6">
-        <slot />
+      <main class="flex-1 lg:ml-64 flex justify-center">
+        <div class="w-full max-w-7xl">
+          <slot />
+        </div>
       </main>
     </div>
   </div>

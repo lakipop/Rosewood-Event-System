@@ -10,7 +10,8 @@ export default {
   theme: {
     extend: {
       colors: {
-        // Dark theme with zinc base
+        // Dark theme with zinc base (already included by default)
+        // Rose primary colors
         primary: {
           50: '#fdf2f8',
           100: '#fce7f3',
@@ -22,7 +23,9 @@ export default {
           700: '#be185d',
           800: '#9f1239',
           900: '#881337',
+          950: '#500724',
         },
+        // Wooden natural secondary colors
         secondary: {
           50: '#faf5f0',
           100: '#f5ebe0',
@@ -34,6 +37,7 @@ export default {
           700: '#704f35',
           800: '#5a3f2b',
           900: '#4a3324',
+          950: '#2d1f16',
         }
       }
     },

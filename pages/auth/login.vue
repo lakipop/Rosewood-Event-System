@@ -1,5 +1,5 @@
 <template>
-  <div class="bg-zinc-900 rounded-xl shadow-2xl p-8 border border-zinc-800">
+  <div class="bg-zinc-800 rounded-xl shadow-2xl p-8 border border-zinc-900">
     <div class="text-center mb-8">
       <div class="text-secondary-400 text-5xl mx-auto mb-3">🌲</div>
       <h2 class="text-2xl font-bold text-zinc-100">Welcome Back</h2>

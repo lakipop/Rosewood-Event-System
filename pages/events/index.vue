@@ -1,5 +1,5 @@
 <template>
-  <div class="min-h-screen bg-zinc-950">
+  <div class="min-h-screen bg-zinc-800">
     <AppHeader />
     
     <div class="flex">
@@ -8,18 +8,21 @@
       <main class="flex-1 ml-64 p-8">
         <div class="max-w-7xl mx-auto">
           <!-- Header -->
-          <div class="flex justify-between items-center mb-8">
+          <div class="flex justify-between items-center mb-6">
             <div>
-              <h1 class="text-3xl font-bold text-zinc-100 mb-2">Events</h1>
-              <p class="text-zinc-400">Manage your events and bookings</p>
+              <h1 class="text-2xl font-bold text-zinc-100 mb-1">Events</h1>
+              <p class="text-zinc-400 text-sm">Manage your events and bookings</p>
             </div>
             
             <button 
               v-if="authStore.user?.role !== 'client'"
               @click="openCreateModal"
-              class="px-6 py-3 bg-rose-600 hover:bg-rose-700 text-white rounded-lg font-medium transition flex items-center gap-2"
+              class="px-5 py-2.5 text-white rounded-lg font-medium transition flex items-center gap-2 shadow-lg"
+              style="background: linear-gradient(90deg, #ec4899 0%, #db2777 100%);"
             >
-              <span class="text-xl">➕</span>
+              <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+              </svg>
               Create Event
             </button>
           </div>

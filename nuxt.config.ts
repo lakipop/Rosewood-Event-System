@@ -11,6 +11,12 @@ export default defineNuxtConfig({
 
   css: ['~/assets/css/tailwind.css'],
 
+  ui: {
+    theme: {
+      colors: ['primary', 'secondary']
+    }
+  },
+
   colorMode: {
     preference: 'dark'
   },

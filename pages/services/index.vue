@@ -1,5 +1,5 @@
 <template>
-  <div class="min-h-screen bg-zinc-950">
+  <div class="min-h-screen bg-zinc-800">
     <AppHeader />
     
     <div class="flex">
