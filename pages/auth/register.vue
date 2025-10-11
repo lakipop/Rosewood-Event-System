@@ -1,5 +1,5 @@
 <template>
-  <div class="bg-zinc-800 rounded-xl shadow-2xl p-8 border border-zinc-900">
+  <div class="bg-zinc-800 rounded-xl shadow-2xl p-8 border border-zinc-900 min-h-screen px-100 mx-auto">
     <div class="text-center mb-8">
       <div class="text-secondary-400 text-5xl mx-auto mb-3">🌲</div>
       <h2 class="text-2xl font-bold text-zinc-100">Create Account</h2>
@@ -12,7 +12,7 @@
         <input
           v-model="fullName"
           type="text"
-          placeholder="John Doe"
+          placeholder="Lakindu Sadumina"
           class="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-lg text-zinc-100 placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
           required
         />
