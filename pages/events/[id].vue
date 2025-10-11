@@ -80,29 +80,60 @@
 
               <!-- Financial Summary Card -->
               <div class="bg-zinc-900 rounded-lg border border-zinc-800 p-6">
-                <h2 class="text-xl font-bold text-zinc-100 mb-6">Financial Summary</h2>
+                <h2 class="text-xl font-bold text-zinc-100 mb-6 flex items-center gap-2">
+                  💰 Financial Summary
+                </h2>
                 
                 <div class="space-y-4">
+                  <!-- Total Cost -->
                   <div>
                     <p class="text-sm text-zinc-400 mb-1">Total Cost</p>
-                    <p class="text-2xl font-bold text-zinc-100">Rs. {{ totalCost.toLocaleString() }}</p>
+                    <p class="text-2xl font-bold text-zinc-100">₱{{ formatCurrency(event.financials?.total_cost || 0) }}</p>
                   </div>
 
+                  <!-- Total Paid -->
                   <div>
                     <p class="text-sm text-zinc-400 mb-1">Total Paid</p>
-                    <p class="text-2xl font-bold text-green-400">Rs. {{ totalPaid.toLocaleString() }}</p>
+                    <p class="text-2xl font-bold text-green-400">₱{{ formatCurrency(event.financials?.total_paid || 0) }}</p>
                   </div>
 
+                  <!-- Balance -->
                   <div class="pt-4 border-t border-zinc-800">
                     <p class="text-sm text-zinc-400 mb-1">Balance</p>
-                    <p class="text-2xl font-bold text-rose-400">Rs. {{ balance.toLocaleString() }}</p>
+                    <p :class="(event.financials?.balance || 0) > 0 ? 'text-rose-400' : 'text-green-400'" class="text-2xl font-bold">
+                      ₱{{ formatCurrency(event.financials?.balance || 0) }}
+                    </p>
+                  </div>
+
+                  <!-- Payment Status Badge -->
+                  <div v-if="event.financials?.payment_status" class="pt-4 border-t border-zinc-800">
+                    <p class="text-sm text-zinc-400 mb-2">Payment Status</p>
+                    <span 
+                      :class="{
+                        'bg-green-900/30 text-green-400': event.financials.is_paid,
+                        'bg-yellow-900/30 text-yellow-400': !event.financials.is_paid && event.financials.total_paid > 0,
+                        'bg-red-900/30 text-red-400': event.financials.total_paid === 0
+                      }"
+                      class="px-3 py-1.5 rounded-full text-sm font-medium inline-block"
+                    >
+                      {{ event.financials.payment_status }}
+                    </span>
+                  </div>
+
+                  <!-- Days Until Event -->
+                  <div v-if="event.financials?.days_until !== null && event.status !== 'completed' && event.status !== 'cancelled'" class="pt-4 border-t border-zinc-800">
+                    <p class="text-sm text-zinc-400 mb-2">Days Until Event</p>
+                    <p :class="event.financials.days_until < 7 ? 'text-red-400' : 'text-zinc-200'" class="text-3xl font-bold">
+                      {{ event.financials.days_until }}
+                      <span class="text-base font-normal text-zinc-400">days</span>
+                    </p>
                   </div>
 
                   <button 
                     @click="openPaymentModal"
-                    class="w-full px-4 py-3 bg-rose-600 hover:bg-rose-700 text-white rounded-lg font-medium transition mt-4"
+                    class="w-full px-4 py-3 bg-gradient-to-r from-pink-500 to-rose-600 hover:from-pink-600 hover:to-rose-700 text-white rounded-lg font-medium transition mt-4 shadow-lg"
                   >
-                    Record Payment
+                    💳 Record Payment
                   </button>
                 </div>
               </div>
@@ -259,6 +290,8 @@ const eventId = route.params.id;
 
 const event = ref<any>(null);
 const payments = ref<any[]>([]);
+const services = ref<any[]>([]);
+const activities = ref<any[]>([]);
 const loading = ref(true);
 const loadingPayments = ref(true);
 const showPaymentModal = ref(false);
@@ -267,15 +300,11 @@ const savingPayment = ref(false);
 const paymentForm = ref({
   amount: null as number | null,
   payment_method: '',
+  payment_type: 'deposit',
+  reference_number: '',
   payment_date: new Date().toISOString().split('T')[0],
   notes: ''
 });
-
-const totalCost = computed(() => event.value?.total_cost || 0);
-const totalPaid = computed(() => {
-  return payments.value.reduce((sum, p) => sum + parseFloat(p.amount), 0);
-});
-const balance = computed(() => totalCost.value - totalPaid.value);
 
 const fetchEvent = async () => {
   try {
@@ -287,7 +316,10 @@ const fetchEvent = async () => {
       }
     });
     
-    event.value = response.data;
+    event.value = response.event || response.data;
+    payments.value = response.payments || [];
+    services.value = response.services || [];
+    activities.value = response.activities || [];
   } catch (error: any) {
     console.error('Failed to fetch event:', error);
     if (error.statusCode === 401) {
@@ -296,32 +328,16 @@ const fetchEvent = async () => {
     }
   } finally {
     loading.value = false;
-  }
-};
-
-const fetchPayments = async () => {
-  try {
-    loadingPayments.value = true;
-    
-    const response = await $fetch<any>('/api/payments', {
-      params: { event_id: eventId },
-      headers: {
-        Authorization: `Bearer ${authStore.token}`
-      }
-    });
-    
-    payments.value = response.data || [];
-  } catch (error: any) {
-    console.error('Failed to fetch payments:', error);
-  } finally {
     loadingPayments.value = false;
   }
 };
 
 const openPaymentModal = () => {
   paymentForm.value = {
-    amount: null,
+    amount: event.value?.financials?.balance || null,
     payment_method: '',
+    payment_type: 'deposit',
+    reference_number: '',
     payment_date: new Date().toISOString().split('T')[0],
     notes: ''
   };
@@ -336,11 +352,14 @@ const savePayment = async () => {
   try {
     savingPayment.value = true;
 
-    await $fetch('/api/payments', {
+    const response = await $fetch<any>('/api/payments', {
       method: 'POST',
       body: {
         event_id: eventId,
-        ...paymentForm.value
+        amount: paymentForm.value.amount,
+        payment_method: paymentForm.value.payment_method,
+        payment_type: paymentForm.value.payment_type,
+        reference_number: paymentForm.value.reference_number || null
       },
       headers: {
         Authorization: `Bearer ${authStore.token}`
@@ -348,7 +367,13 @@ const savePayment = async () => {
     });
 
     closePaymentModal();
-    await fetchPayments();
+    
+    // Show auto-confirm message if event was auto-confirmed
+    if (response.eventConfirmed) {
+      alert('✅ Payment recorded successfully! Event has been automatically confirmed as fully paid.');
+    }
+    
+    await fetchEvent(); // Re-fetch all data to get updated financials
   } catch (error: any) {
     console.error('Failed to save payment:', error);
     alert(error.data?.message || 'Failed to save payment');
@@ -368,11 +393,18 @@ const deletePayment = async (paymentId: number) => {
       }
     });
 
-    await fetchPayments();
+    await fetchEvent(); // Re-fetch to get updated financials
   } catch (error: any) {
     console.error('Failed to delete payment:', error);
     alert(error.data?.message || 'Failed to delete payment');
   }
+};
+
+const formatCurrency = (value: number) => {
+  return new Intl.NumberFormat('en-PH', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2
+  }).format(value);
 };
 
 const formatDate = (date: string) => {
@@ -405,7 +437,6 @@ onMounted(() => {
     navigateTo('/auth/login');
   } else {
     fetchEvent();
-    fetchPayments();
   }
 });
 </script>

@@ -16,7 +16,7 @@
             
             <button 
               v-if="authStore.user?.role !== 'client'"
-              @click="openCreateModal"
+              @click="navigateTo('/events/create')"
               class="px-5 py-2.5 text-white rounded-lg font-medium transition flex items-center gap-2 shadow-lg"
               style="background: linear-gradient(90deg, #ec4899 0%, #db2777 100%);"
             >
@@ -27,8 +27,32 @@
             </button>
           </div>
 
+          <!-- Stats Dashboard -->
+          <div v-if="stats" class="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
+            <div class="bg-blue-900/20 border border-blue-800/30 rounded-lg p-4">
+              <div class="text-blue-400 text-2xl font-bold">{{ stats.inquiry }}</div>
+              <div class="text-zinc-400 text-sm">Inquiry</div>
+            </div>
+            <div class="bg-green-900/20 border border-green-800/30 rounded-lg p-4">
+              <div class="text-green-400 text-2xl font-bold">{{ stats.confirmed }}</div>
+              <div class="text-zinc-400 text-sm">Confirmed</div>
+            </div>
+            <div class="bg-yellow-900/20 border border-yellow-800/30 rounded-lg p-4">
+              <div class="text-yellow-400 text-2xl font-bold">{{ stats.in_progress }}</div>
+              <div class="text-zinc-400 text-sm">In Progress</div>
+            </div>
+            <div class="bg-zinc-800 border border-zinc-700 rounded-lg p-4">
+              <div class="text-zinc-300 text-2xl font-bold">{{ stats.completed }}</div>
+              <div class="text-zinc-400 text-sm">Completed</div>
+            </div>
+            <div class="bg-red-900/20 border border-red-800/30 rounded-lg p-4">
+              <div class="text-red-400 text-2xl font-bold">{{ stats.cancelled }}</div>
+              <div class="text-zinc-400 text-sm">Cancelled</div>
+            </div>
+          </div>
+
           <!-- Filters -->
-          <div class="mb-6 flex gap-4">
+          <div class="mb-6 flex flex-wrap gap-4">
             <select 
               v-model="filterStatus"
               class="px-4 py-2 bg-zinc-900 border border-zinc-800 rounded-lg text-zinc-300 focus:ring-2 focus:ring-rose-500 focus:outline-none"
@@ -45,7 +69,21 @@
               v-model="searchQuery"
               type="text"
               placeholder="Search events..."
-              class="flex-1 px-4 py-2 bg-zinc-900 border border-zinc-800 rounded-lg text-zinc-300 focus:ring-2 focus:ring-rose-500 focus:outline-none"
+              class="flex-1 min-w-[200px] px-4 py-2 bg-zinc-900 border border-zinc-800 rounded-lg text-zinc-300 focus:ring-2 focus:ring-rose-500 focus:outline-none"
+            />
+
+            <input 
+              v-model="filterStartDate"
+              type="date"
+              class="px-4 py-2 bg-zinc-900 border border-zinc-800 rounded-lg text-zinc-300 focus:ring-2 focus:ring-rose-500 focus:outline-none"
+              placeholder="Start Date"
+            />
+
+            <input 
+              v-model="filterEndDate"
+              type="date"
+              class="px-4 py-2 bg-zinc-900 border border-zinc-800 rounded-lg text-zinc-300 focus:ring-2 focus:ring-rose-500 focus:outline-none"
+              placeholder="End Date"
             />
           </div>
 
@@ -97,6 +135,43 @@
                   <div v-if="event.client_name" class="flex items-center gap-2 text-zinc-400">
                     <span>👤</span>
                     <span class="text-sm">{{ event.client_name }}</span>
+                  </div>
+                </div>
+
+                <!-- Financial Info -->
+                <div class="border-t border-zinc-800 pt-4 mb-4 space-y-2">
+                  <div class="flex justify-between text-sm">
+                    <span class="text-zinc-400">Total Cost:</span>
+                    <span class="text-zinc-200 font-medium">₱{{ formatCurrency(event.total_cost || 0) }}</span>
+                  </div>
+                  <div class="flex justify-between text-sm">
+                    <span class="text-zinc-400">Paid:</span>
+                    <span class="text-green-400 font-medium">₱{{ formatCurrency(event.total_paid || 0) }}</span>
+                  </div>
+                  <div class="flex justify-between text-sm">
+                    <span class="text-zinc-400">Balance:</span>
+                    <span :class="(event.balance || 0) > 0 ? 'text-yellow-400' : 'text-green-400'" class="font-medium">
+                      ₱{{ formatCurrency(event.balance || 0) }}
+                    </span>
+                  </div>
+                  <div v-if="event.payment_status" class="flex justify-between text-sm">
+                    <span class="text-zinc-400">Status:</span>
+                    <span 
+                      :class="{
+                        'text-green-400': event.payment_status === 'Fully Paid',
+                        'text-yellow-400': event.payment_status === 'Partially Paid',
+                        'text-red-400': event.payment_status === 'Unpaid'
+                      }"
+                      class="font-medium"
+                    >
+                      {{ event.payment_status }}
+                    </span>
+                  </div>
+                  <div v-if="event.days_until_event !== null && event.status !== 'completed' && event.status !== 'cancelled'" class="flex justify-between text-sm">
+                    <span class="text-zinc-400">Days Until:</span>
+                    <span :class="event.days_until_event < 7 ? 'text-red-400' : 'text-zinc-300'" class="font-medium">
+                      {{ event.days_until_event }} days
+                    </span>
                   </div>
                 </div>
 
@@ -272,12 +347,15 @@ definePageMeta({
 
 const authStore = useAuthStore();
 const events = ref<any[]>([]);
+const stats = ref<any>(null);
 const loading = ref(true);
 const showModal = ref(false);
 const isEditing = ref(false);
 const saving = ref(false);
 const filterStatus = ref('');
 const searchQuery = ref('');
+const filterStartDate = ref('');
+const filterEndDate = ref('');
 
 const formData = ref({
   event_id: null as number | null,
@@ -308,6 +386,14 @@ const filteredEvents = computed(() => {
     );
   }
 
+  if (filterStartDate.value) {
+    result = result.filter(e => new Date(e.event_date) >= new Date(filterStartDate.value));
+  }
+
+  if (filterEndDate.value) {
+    result = result.filter(e => new Date(e.event_date) <= new Date(filterEndDate.value));
+  }
+
   return result;
 });
 
@@ -315,13 +401,23 @@ const fetchEvents = async () => {
   try {
     loading.value = true;
     
-    const response = await $fetch<any>('/api/events', {
+    const params: any = {};
+    if (filterStatus.value) params.status = filterStatus.value;
+    if (searchQuery.value) params.search = searchQuery.value;
+    if (filterStartDate.value) params.startDate = filterStartDate.value;
+    if (filterEndDate.value) params.endDate = filterEndDate.value;
+
+    const queryString = new URLSearchParams(params).toString();
+    const url = queryString ? `/api/events?${queryString}` : '/api/events';
+    
+    const response = await $fetch<any>(url, {
       headers: {
         Authorization: `Bearer ${authStore.token}`
       }
     });
     
     events.value = response.data || [];
+    stats.value = response.stats || null;
   } catch (error: any) {
     console.error('Failed to fetch events:', error);
     if (error.statusCode === 401) {
@@ -436,6 +532,18 @@ const getStatusColor = (status: string) => {
   };
   return colors[status] || 'bg-zinc-700 text-zinc-400';
 };
+
+const formatCurrency = (value: number) => {
+  return new Intl.NumberFormat('en-PH', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2
+  }).format(value);
+};
+
+// Watch filters to re-fetch events when they change
+watch([filterStatus, searchQuery, filterStartDate, filterEndDate], () => {
+  fetchEvents();
+});
 
 onMounted(() => {
   if (!authStore.user) {

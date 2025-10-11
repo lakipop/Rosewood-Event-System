@@ -42,7 +42,9 @@ export default defineEventHandler(async (event) => {
         s.service_name,
         s.category,
         s.description as service_description,
-        s.base_price
+        s.unit_price,
+        s.unit_type,
+        (es.quantity * es.agreed_price) as subtotal
       FROM event_services es
       JOIN services s ON es.service_id = s.service_id
       WHERE es.event_id = ?

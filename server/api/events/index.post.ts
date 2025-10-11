@@ -31,41 +31,49 @@ export default defineEventHandler(async (event) => {
       clientId = body.clientId || user.userId
     }
 
-    // Insert event
-    const result = await query(
-      `INSERT INTO events 
-       (client_id, event_type_id, event_name, event_date, event_time, venue, guest_count, budget, special_notes, status) 
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    // Use stored procedure sp_create_event for validation and creation
+    await query(
+      `CALL sp_create_event(?, ?, ?, ?, ?, ?, ?, ?, @event_id, @message)`,
       [
         clientId,
         eventTypeId,
+        eventName,
         eventDate,
         eventTime || null,
         venue || null,
         guestCount || 50,
-        budget || null,
-        specialNotes || null,
-        'inquiry'
+        budget || null
       ]
-    ) as any
+    )
 
-    const eventId = result.insertId
+    // Get the output parameters
+    const result = await query('SELECT @event_id as event_id, @message as message') as any[]
+    const { event_id: eventId, message } = result[0]
 
-    // Fetch the created event
+    if (eventId === 0) {
+      throw createError({
+        statusCode: 400,
+        message: message || 'Failed to create event'
+      })
+    }
+
+    // Add special notes if provided (procedure doesn't handle this)
+    if (specialNotes) {
+      await query(
+        'UPDATE events SET special_notes = ? WHERE event_id = ?',
+        [specialNotes, eventId]
+      )
+    }
+
+    // Fetch the created event using the view
     const events = await query(
-      `SELECT 
-        e.*,
-        et.type_name,
-        u.full_name as client_name
-      FROM events e
-      LEFT JOIN event_types et ON e.event_type_id = et.event_type_id
-      LEFT JOIN users u ON e.client_id = u.user_id
-      WHERE e.event_id = ?`,
+      'SELECT * FROM v_event_summary WHERE event_id = ?',
       [eventId]
     ) as any[]
 
     return {
       success: true,
+      message: message,
       data: events[0]
     }
 
@@ -78,7 +86,7 @@ export default defineEventHandler(async (event) => {
 
     throw createError({
       statusCode: 500,
-      message: 'Failed to create event'
+      message: error.message || 'Failed to create event'
     })
   }
 })

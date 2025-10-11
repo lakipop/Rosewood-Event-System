@@ -4,7 +4,7 @@ export default defineEventHandler(async (event) => {
   try {
     const user = event.context.user
     const body = await readBody(event)
-    const { event_id, amount, payment_method, payment_date, notes } = body
+    const { event_id, amount, payment_method, payment_type, reference_number } = body
 
     // Validation
     if (!event_id || !amount || !payment_method) {
@@ -16,9 +16,7 @@ export default defineEventHandler(async (event) => {
 
     // Verify event exists and user has access
     const events = await query(
-      `SELECT e.*, 
-        (SELECT COALESCE(SUM(amount), 0) FROM payments WHERE event_id = e.event_id) as total_paid
-       FROM events e WHERE e.event_id = ?`,
+      'SELECT * FROM events WHERE event_id = ?',
       [event_id]
     ) as any[]
 
@@ -39,23 +37,50 @@ export default defineEventHandler(async (event) => {
       })
     }
 
-    // Insert payment
-    const result = await query(
-      `INSERT INTO payments (event_id, amount, payment_method, payment_date, notes) 
-       VALUES (?, ?, ?, ?, ?)`,
-      [event_id, amount, payment_method, payment_date || new Date(), notes || null]
-    ) as any
-
-    // Get the inserted payment
-    const newPayment = await query(
-      'SELECT * FROM payments WHERE payment_id = ?',
-      [result.insertId]
+    // Use stored procedure to process payment with validation
+    // sp_process_payment validates:
+    // - Event exists and is not cancelled
+    // - Amount is positive
+    // - Payment method is valid
+    // Triggers will:
+    // - Log activity (tr_after_payment_insert)
+    // - Auto-confirm event if fully paid (tr_update_event_status_on_payment)
+    // - Generate reference number if not provided (tr_generate_payment_reference)
+    await query(
+      'CALL sp_process_payment(?, ?, ?, ?, ?, @payment_id, @message)',
+      [event_id, amount, payment_method, payment_type || 'deposit', reference_number || null]
     )
+
+    // Get the procedure result
+    const result = await query('SELECT @payment_id as payment_id, @message as message') as any[]
+    const { payment_id, message } = result[0]
+
+    if (!payment_id) {
+      throw createError({
+        statusCode: 400,
+        message: message || 'Failed to process payment'
+      })
+    }
+
+    // Get the payment details using v_payment_summary view
+    const paymentDetails = await query(
+      'SELECT * FROM v_payment_summary WHERE payment_id = ?',
+      [payment_id]
+    ) as any[]
+
+    // Check if event was auto-confirmed (trigger fired)
+    const updatedEvent = await query(
+      'SELECT status FROM events WHERE event_id = ?',
+      [event_id]
+    ) as any[]
+
+    const eventConfirmed = updatedEvent[0]?.status === 'confirmed'
 
     return {
       success: true,
-      message: 'Payment recorded successfully',
-      data: (newPayment as any[])[0]
+      message: message,
+      eventConfirmed: eventConfirmed, // Notify if event was auto-confirmed
+      data: paymentDetails[0]
     }
 
   } catch (error: any) {

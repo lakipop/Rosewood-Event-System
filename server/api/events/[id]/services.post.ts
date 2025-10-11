@@ -5,13 +5,13 @@ export default defineEventHandler(async (event) => {
     const user = event.context.user
     const eventId = event.context.params?.id
     const body = await readBody(event)
-    const { service_id, quantity, unit_price, notes } = body
+    const { service_id, quantity, agreed_price } = body
 
     // Validation
-    if (!eventId || !service_id || !quantity || !unit_price) {
+    if (!eventId || !service_id || !quantity || !agreed_price) {
       throw createError({
         statusCode: 400,
-        message: 'Event ID, service ID, quantity, and unit price are required'
+        message: 'Event ID, service ID, quantity, and agreed price are required'
       })
     }
 
@@ -30,64 +30,59 @@ export default defineEventHandler(async (event) => {
 
     const eventData = events[0]
 
-    // Check authorization (only staff and admin can add services)
-    if (user.role === 'client') {
+    // Check authorization
+    if (user.role === 'client' && eventData.client_id !== user.userId) {
       throw createError({
         statusCode: 403,
-        message: 'Only staff can add services to events'
+        message: 'Not authorized to modify this event'
       })
     }
 
-    // Verify service exists
-    const services = await query(
-      'SELECT * FROM services WHERE service_id = ?',
-      [service_id]
-    ) as any[]
+    // Use stored procedure to add service with validation
+    // sp_add_event_service validates:
+    // - Service exists and is active
+    // - Service not already added to event
+    // - Agreed price is positive
+    // Triggers will:
+    // - Log activity (tr_after_service_add)
+    // - Warn if over budget (tr_budget_overrun_warning)
+    await query(
+      'CALL sp_add_event_service(?, ?, ?, ?, @success, @message)',
+      [eventId, service_id, quantity, agreed_price]
+    )
 
-    if (!services || services.length === 0) {
-      throw createError({
-        statusCode: 404,
-        message: 'Service not found'
-      })
-    }
+    // Get the procedure result
+    const result = await query('SELECT @success as success, @message as message') as any[]
+    const { success, message } = result[0]
 
-    // Check if service already added to event
-    const existing = await query(
-      'SELECT * FROM event_services WHERE event_id = ? AND service_id = ?',
-      [eventId, service_id]
-    ) as any[]
-
-    if (existing && existing.length > 0) {
+    if (!success) {
       throw createError({
         statusCode: 400,
-        message: 'Service already added to this event'
+        message: message || 'Failed to add service'
       })
     }
 
-    // Add service to event
-    const result = await query(
-      `INSERT INTO event_services (event_id, service_id, quantity, unit_price, notes, added_by)
-       VALUES (?, ?, ?, ?, ?, ?)`,
-      [eventId, service_id, quantity, unit_price, notes || null, user.userId]
-    ) as any
-
-    // Get the created event service
-    const eventServices = await query(
+    // Get the added service details with subtotal
+    const addedService = await query(
       `SELECT 
         es.*,
         s.service_name,
         s.category,
-        s.description as service_description
+        s.unit_type,
+        s.description as service_description,
+        (es.quantity * es.agreed_price) as subtotal
       FROM event_services es
       JOIN services s ON es.service_id = s.service_id
-      WHERE es.event_service_id = ?`,
-      [result.insertId]
+      WHERE es.event_id = ?
+      ORDER BY es.added_at DESC
+      LIMIT 1`,
+      [eventId]
     ) as any[]
 
     return {
       success: true,
-      message: 'Service added to event successfully',
-      eventService: eventServices[0]
+      message: message,
+      eventService: addedService[0]
     }
 
   } catch (error: any) {
