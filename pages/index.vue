@@ -1,5 +1,5 @@
 <template>
-  <div v-if="!isReady" class="min-h-screen bg-zinc-800 flex items-center justify-center">
+  <div v-if="!isReady" class="min-h-screen bg-zinc-950 flex items-center justify-center">
     <div class="text-center">
       <div class="w-8 h-8 border-4 rounded-full animate-spin mx-auto mb-3" style="border-color: #c4a07a; border-top-color: transparent;"></div>
       <p class="text-zinc-400 text-sm">Loading...</p>
@@ -14,11 +14,11 @@
       
       <main class="flex-1 lg:ml-64 p-4 sm:p-6">
         <div class="w-full max-w-7xl mx-auto space-y-6">
-          <!-- Header -->
-          <div>
-            <h1 class="text-2xl font-bold text-zinc-100 mb-1">Dashboard</h1>
-            <p class="text-zinc-400 text-sm">Welcome to Rosewood Event Management</p>
-          </div>
+    <!-- Header -->
+    <div>
+      <h1 class="text-2xl font-bold text-zinc-100 mb-1">Dashboard</h1>
+      <p class="text-zinc-400 text-sm">Welcome to Rosewood Event Management</p>
+    </div>
 
           <!-- Stats Grid -->
           <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
