@@ -170,14 +170,16 @@ const getStatusColor = (status: string) => {
 
 const fetchEvents = async () => {
   if (!authStore.token) {
-    console.log('No token available');
+    console.log('❌ No token available');
     loading.value = false;
     return;
   }
 
   try {
     loading.value = true;
-    console.log('Fetching events with token:', authStore.token?.substring(0, 20) + '...');
+    console.log('🔍 Fetching events...');
+    console.log('📝 Token:', authStore.token?.substring(0, 20) + '...');
+    console.log('👤 User:', authStore.user);
     
     const response = await $fetch<any>('/api/events', {
       headers: {
@@ -185,12 +187,20 @@ const fetchEvents = async () => {
       }
     });
     
-    console.log('Events fetched:', response);
-    events.value = response.events || [];
+    console.log('✅ Events response:', response);
+    events.value = response.data || [];
+    console.log('📊 Events count:', events.value.length);
   } catch (error: any) {
-    console.error('Failed to fetch events:', error);
+    console.error('❌ Failed to fetch events:', error);
+    console.error('Error details:', {
+      statusCode: error.statusCode,
+      statusMessage: error.statusMessage,
+      message: error.message,
+      data: error.data
+    });
+    
     if (error.statusCode === 401) {
-      // Token expired or invalid, redirect to login
+      console.log('🔐 Token expired or invalid, redirecting to login');
       authStore.logout();
       navigateTo('/auth/login');
     }
@@ -200,14 +210,23 @@ const fetchEvents = async () => {
 };
 
 onMounted(async () => {
+  console.log('🚀 Dashboard mounted');
+  
   // Wait a bit for auth to initialize from localStorage
   await new Promise(resolve => setTimeout(resolve, 100));
   
+  console.log('🔐 Auth state:', {
+    hasToken: !!authStore.token,
+    hasUser: !!authStore.user,
+    isAuthenticated: authStore.isAuthenticated,
+    user: authStore.user
+  });
+  
   if (!authStore.user) {
-    console.log('No user found, redirecting to login');
+    console.log('❌ No user found, redirecting to login');
     navigateTo('/auth/login');
   } else {
-    console.log('User found:', authStore.user);
+    console.log('✅ User authenticated:', authStore.user.email);
     isReady.value = true;
     await fetchEvents();
   }
