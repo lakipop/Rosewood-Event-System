@@ -216,10 +216,6 @@
 <script setup lang="ts">
 import { useAuthStore } from '~/stores/auth';
 
-definePageMeta({
-  layout: 'default'
-});
-
 const authStore = useAuthStore();
 
 const services = ref<any[]>([]);
@@ -255,11 +251,23 @@ const formatUnitType = (type: string) => {
 const fetchServices = async () => {
   try {
     loading.value = true;
-    const response = await $fetch<any>('/api/services');
-    services.value = response.services;
+    error.value = '';
+    
+    const response = await useFetch<any>('/api/services', {
+      headers: {
+        Authorization: `Bearer ${authStore.token}`
+      }
+    });
+    
+    services.value = response.data.value?.services || response.data.value?.data || [];
   } catch (err: any) {
-    error.value = err.message || 'Failed to load services';
+    error.value = err.data?.message || err.message || 'Failed to load services';
     console.error('Error fetching services:', err);
+    
+    if (err.statusCode === 401) {
+      authStore.logout();
+      navigateTo('/auth/login');
+    }
   } finally {
     loading.value = false;
   }
@@ -297,7 +305,7 @@ const saveService = async () => {
     
     if (editingService.value) {
       // Update
-      await $fetch(`/api/services/${editingService.value.service_id}`, {
+      await useFetch(`/api/services/${editingService.value.service_id}`, {
         method: 'PUT',
         headers: {
           Authorization: `Bearer ${authStore.token}`
@@ -306,7 +314,7 @@ const saveService = async () => {
       });
     } else {
       // Create
-      await $fetch('/api/services', {
+      await useFetch('/api/services', {
         method: 'POST',
         headers: {
           Authorization: `Bearer ${authStore.token}`
