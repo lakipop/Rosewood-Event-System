@@ -1,8 +1,9 @@
 import jwt from 'jsonwebtoken'
 
-export const generateToken = (payload: any, expiresIn: string = '7d') => {
+export const generateToken = (payload: any, expiresIn: string = '7d'): string => {
   const config = useRuntimeConfig()
-  return jwt.sign(payload, config.jwtSecret, { expiresIn })
+  const secret = config.jwtSecret as string
+  return jwt.sign(payload, secret, { expiresIn } as jwt.SignOptions)
 }
 
 export const verifyToken = (token: string) => {
