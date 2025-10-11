@@ -39,5 +39,12 @@ export default defineNuxtConfig({
         { name: 'description', content: 'Professional Event Management System' }
       ]
     }
-  }
+  },
+
+  components: [
+    {
+      path: '~/components',
+      pathPrefix: false
+    }
+  ]
 })
