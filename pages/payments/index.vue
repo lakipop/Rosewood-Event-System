@@ -33,13 +33,24 @@
               <option value="pending">Pending</option>
               <option value="completed">Completed</option>
               <option value="failed">Failed</option>
+              <option value="refunded">Refunded</option>
             </select>
 
             <select 
               v-model="selectedType"
               class="px-4 py-2 bg-zinc-900 text-white border border-zinc-700 rounded-lg"
             >
-              <option value="">All Types</option>
+              <option value="">All Payment Types</option>
+              <option value="advance">Advance</option>
+              <option value="partial">Partial</option>
+              <option value="final">Final</option>
+            </select>
+
+            <select 
+              v-model="selectedMethod"
+              class="px-4 py-2 bg-zinc-900 text-white border border-zinc-700 rounded-lg"
+            >
+              <option value="">All Methods</option>
               <option value="cash">Cash</option>
               <option value="card">Card</option>
               <option value="bank_transfer">Bank Transfer</option>
@@ -63,6 +74,7 @@
                   <th class="text-left px-6 py-4 text-sm font-medium text-zinc-300">ID</th>
                   <th class="text-left px-6 py-4 text-sm font-medium text-zinc-300">Event</th>
                   <th class="text-left px-6 py-4 text-sm font-medium text-zinc-300">Amount</th>
+                  <th class="text-left px-6 py-4 text-sm font-medium text-zinc-300">Method</th>
                   <th class="text-left px-6 py-4 text-sm font-medium text-zinc-300">Type</th>
                   <th class="text-left px-6 py-4 text-sm font-medium text-zinc-300">Status</th>
                   <th class="text-left px-6 py-4 text-sm font-medium text-zinc-300">Date</th>
@@ -81,21 +93,26 @@
                     <div class="text-sm text-zinc-500">{{ payment.description || 'No description' }}</div>
                   </td>
                   <td class="px-6 py-4">
-                    <div class="text-xl font-bold text-primary-500">
+                    <div class="text-xl font-bold text-primary-500 text-amber-100">
                       Rs. {{ formatNumber(payment.amount) }}
                     </div>
                   </td>
                   <td class="px-6 py-4">
-                    <span class="px-2 py-1 bg-zinc-800 text-zinc-300 text-xs rounded-full capitalize">
-                      {{ formatPaymentType(payment.payment_type) }}
+                    <span class="px-2 py-1 bg-blue-900/30 text-blue-300 text-xs rounded-full capitalize">
+                      {{ formatPaymentType(payment.payment_method) }}
+                    </span>
+                  </td>
+                  <td class="px-6 py-4">
+                    <span class="px-2 py-1 bg-purple-900/30 text-purple-300 text-xs rounded-full capitalize">
+                      {{ payment.payment_type }}
                     </span>
                   </td>
                   <td class="px-6 py-4">
                     <span 
-                      :class="getStatusClass(payment.payment_status)"
-                      class="px-2 py-1 text-xs rounded-full capitalize"
+                      :class="getStatusClass(payment.status)"
+                      class="px-2 py-1 text-xs rounded-full capitalize text-zinc-100"
                     >
-                      {{ payment.payment_status }}
+                      {{ payment.status }}
                     </span>
                   </td>
                   <td class="px-6 py-4 text-zinc-400 text-sm">
@@ -170,13 +187,13 @@
           </div>
 
           <div>
-            <label class="block text-sm font-medium text-zinc-300 mb-2">Payment Type *</label>
+            <label class="block text-sm font-medium text-zinc-300 mb-2">Payment Method *</label>
             <select 
-              v-model="formData.payment_type"
+              v-model="formData.payment_method"
               required
               class="w-full px-4 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-white"
             >
-              <option value="">Select type</option>
+              <option value="">Select method</option>
               <option value="cash">Cash</option>
               <option value="card">Card</option>
               <option value="bank_transfer">Bank Transfer</option>
@@ -185,9 +202,23 @@
           </div>
 
           <div>
+            <label class="block text-sm font-medium text-zinc-300 mb-2">Payment Type *</label>
+            <select 
+              v-model="formData.payment_type"
+              required
+              class="w-full px-4 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-white"
+            >
+              <option value="">Select type</option>
+              <option value="advance">Advance</option>
+              <option value="partial">Partial</option>
+              <option value="final">Final</option>
+            </select>
+          </div>
+
+          <div>
             <label class="block text-sm font-medium text-zinc-300 mb-2">Status *</label>
             <select 
-              v-model="formData.payment_status"
+              v-model="formData.status"
               required
               class="w-full px-4 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-white"
             >
@@ -255,13 +286,15 @@ const submitting = ref(false);
 // Filters
 const selectedStatus = ref('');
 const selectedType = ref('');
+const selectedMethod = ref('');
 
 // Form data
 const formData = ref({
   event_id: 0,
   amount: 0,
+  payment_method: '',
   payment_type: '',
-  payment_status: 'pending',
+  status: 'pending',
   payment_date: new Date().toISOString().split('T')[0],
   description: ''
 });
@@ -271,11 +304,15 @@ const filteredPayments = computed(() => {
   let filtered = payments.value;
 
   if (selectedStatus.value) {
-    filtered = filtered.filter(p => p.payment_status === selectedStatus.value);
+    filtered = filtered.filter(p => p.status === selectedStatus.value);
   }
 
   if (selectedType.value) {
     filtered = filtered.filter(p => p.payment_type === selectedType.value);
+  }
+
+  if (selectedMethod.value) {
+    filtered = filtered.filter(p => p.payment_method === selectedMethod.value);
   }
 
   return filtered;
@@ -347,8 +384,9 @@ const editPayment = (payment: any) => {
   formData.value = {
     event_id: payment.event_id,
     amount: payment.amount,
+    payment_method: payment.payment_method,
     payment_type: payment.payment_type,
-    payment_status: payment.payment_status,
+    status: payment.status,
     payment_date: payment.payment_date?.split('T')[0] || new Date().toISOString().split('T')[0],
     description: payment.description || ''
   };
@@ -381,8 +419,9 @@ const closeModal = () => {
   formData.value = {
     event_id: 0,
     amount: 0,
+    payment_method: '',
     payment_type: '',
-    payment_status: 'pending',
+    status: 'pending',
     payment_date: new Date().toISOString().split('T')[0],
     description: ''
   };

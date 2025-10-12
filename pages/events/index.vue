@@ -142,27 +142,30 @@
                 <div class="border-t border-zinc-800 pt-4 mb-4 space-y-2">
                   <div class="flex justify-between text-sm">
                     <span class="text-zinc-400">Total Cost:</span>
-                    <span class="text-zinc-200 font-medium">₱{{ formatCurrency(event.total_cost || 0) }}</span>
+                    <span class="text-zinc-200 font-medium">Rs.{{ formatCurrency(event.total_cost || 0) }}</span>
                   </div>
                   <div class="flex justify-between text-sm">
                     <span class="text-zinc-400">Paid:</span>
-                    <span class="text-green-400 font-medium">₱{{ formatCurrency(event.total_paid || 0) }}</span>
+                    <span class="text-green-400 font-medium">Rs.{{ formatCurrency(event.total_paid || 0) }}</span>
                   </div>
                   <div class="flex justify-between text-sm">
                     <span class="text-zinc-400">Balance:</span>
                     <span :class="(event.balance || 0) > 0 ? 'text-yellow-400' : 'text-green-400'" class="font-medium">
-                      ₱{{ formatCurrency(event.balance || 0) }}
+                      Rs.{{ formatCurrency(event.balance || 0) }}
                     </span>
                   </div>
                   <div v-if="event.payment_status" class="flex justify-between text-sm">
                     <span class="text-zinc-400">Status:</span>
                     <span 
-                      :class="{
-                        'text-green-400': event.payment_status === 'Fully Paid',
-                        'text-yellow-400': event.payment_status === 'Partially Paid',
-                        'text-red-400': event.payment_status === 'Unpaid'
-                      }"
-                      class="font-medium"
+                      :class="[
+                        event.payment_status === 'FULLY_PAID' ? 'text-green-400' :
+                        event.payment_status === 'PARTIALLY_PAID_LOW' ? 'text-yellow-400' :
+                        event.payment_status === 'PARTIALLY_PAID_HIGH' ? 'text-orange-400' :
+                        event.payment_status === 'NO_SERVICES' ? 'text-sky-300' :
+                        event.payment_status === 'UNPAID' ? 'text-red-400' : 'text-zinc-400',
+
+                        'font-medium'
+                      ]"
                     >
                       {{ event.payment_status }}
                     </span>

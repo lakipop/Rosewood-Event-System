@@ -7,7 +7,7 @@ export default defineEventHandler(async (event) => {
     let sql = `
       SELECT 
         service_id, service_name, category, description, 
-        unit_price, unit_type, is_available, created_at, updated_at
+        unit_price, unit_type, is_available, created_at
       FROM services
       WHERE 1=1
     `;

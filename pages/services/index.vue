@@ -56,7 +56,7 @@
               <div class="flex justify-between items-start mb-4">
                 <div>
                   <h3 class="text-xl font-semibold text-white mb-1">{{ service.service_name }}</h3>
-                  <span class="text-sm text-secondary-400">{{ service.category }}</span>
+                  <span class="text-sm text-secondary-400 text-amber-200">{{ service.category }}</span>
                 </div>
                 <span 
                   v-if="service.is_available"
@@ -76,7 +76,7 @@
 
               <div class="flex justify-between items-end">
                 <div>
-                  <div class="text-2xl font-bold text-primary-500">
+                  <div class="text-2xl font-bold text-primary-500 text-rose-400/80">
                     Rs. {{ formatNumber(service.unit_price) }}
                   </div>
                   <div class="text-xs text-zinc-500">{{ formatUnitType(service.unit_type) }}</div>

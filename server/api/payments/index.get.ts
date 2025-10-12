@@ -6,37 +6,34 @@ export default defineEventHandler(async (event) => {
     const queryParams = getQuery(event)
     const eventId = queryParams.event_id
 
-    // Build query based on filters
-    let sql = `
-      SELECT 
-        p.*,
-        e.event_name,
-        u.full_name as client_name
-      FROM payments p
-      LEFT JOIN events e ON p.event_id = e.event_id
-      LEFT JOIN users u ON e.client_id = u.user_id
-    `
+    // Use ADBMS view v_payment_summary for optimized query
+    let sql = `SELECT * FROM v_payment_summary WHERE 1=1`
     
     const params: any[] = []
-    const conditions: string[] = []
 
     // Filter by event if specified
     if (eventId) {
-      conditions.push('p.event_id = ?')
+      sql += ' AND event_id = ?'
       params.push(eventId)
     }
 
     // If user is a client, show only their payments
+    // Note: v_payment_summary already has client_name joined
     if (user.role === 'client') {
-      conditions.push('e.client_id = ?')
-      params.push(user.userId)
+      // Need to join back to get client_id for filtering
+      sql = `
+        SELECT v.* 
+        FROM v_payment_summary v
+        JOIN events e ON v.event_id = e.event_id
+        WHERE e.client_id = ?
+      `
+      params.unshift(user.userId)
+      
+      if (eventId) {
+        sql += ' AND v.event_id = ?'
+        params.push(eventId)
+      }
     }
-
-    if (conditions.length > 0) {
-      sql += ' WHERE ' + conditions.join(' AND ')
-    }
-
-    sql += ' ORDER BY p.payment_date DESC'
 
     const payments = await query(sql, params)
 
