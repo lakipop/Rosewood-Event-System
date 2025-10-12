@@ -5,7 +5,7 @@ export default defineEventHandler(async (event) => {
     const user = event.context.user
     const paymentId = event.context.params?.id
     const body = await readBody(event)
-    const { amount, payment_method, payment_date, notes } = body
+    const { amount, payment_method, payment_type, payment_date, status, description } = body
 
     // Validation
     if (!paymentId) {
@@ -41,16 +41,23 @@ export default defineEventHandler(async (event) => {
       })
     }
 
-    // Update payment
+    // Update payment with all fields
     await query(
       `UPDATE payments 
-       SET amount = ?, payment_method = ?, payment_date = ?, notes = ?
+       SET amount = ?, 
+           payment_method = ?, 
+           payment_type = ?,
+           payment_date = ?, 
+           status = ?,
+           notes = ?
        WHERE payment_id = ?`,
       [
         amount !== undefined ? amount : payment.amount,
         payment_method || payment.payment_method,
+        payment_type || payment.payment_type,
         payment_date || payment.payment_date,
-        notes !== undefined ? notes : payment.notes,
+        status || payment.status,
+        description !== undefined ? description : payment.notes,
         paymentId
       ]
     )

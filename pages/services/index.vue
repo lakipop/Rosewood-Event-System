@@ -14,13 +14,22 @@
               <p class="text-zinc-400">Manage event services and offerings</p>
             </div>
             
-            <button 
-              v-if="authStore.user?.role !== 'client'"
-              @click="showAddModal = true"
-              class="px-6 py-3 bg-primary-600 hover:bg-primary-700 text-white rounded-lg font-medium transition"
-            >
-              ➕ Add Service
-            </button>
+            <div class="flex gap-3">
+              <button 
+                @click="fetchServices"
+                class="px-4 py-3 bg-zinc-700 hover:bg-zinc-600 text-white rounded-lg font-medium transition"
+                title="Refresh data"
+              >
+                🔄 Reload
+              </button>
+              <button 
+                v-if="authStore.user?.role !== 'client'"
+                @click="showAddModal = true"
+                class="px-6 py-3 bg-primary-600 hover:bg-primary-700 text-white rounded-lg font-medium transition"
+              >
+                ➕ Add Service
+              </button>
+            </div>
           </div>
 
           <!-- Filter -->
@@ -253,13 +262,13 @@ const fetchServices = async () => {
     loading.value = true;
     error.value = '';
     
-    const response = await useFetch<any>('/api/services', {
+    const response = await $fetch<any>('/api/services', {
       headers: {
         Authorization: `Bearer ${authStore.token}`
       }
     });
     
-    services.value = response.data.value?.services || response.data.value?.data || [];
+    services.value = response.services || response.data || [];
   } catch (err: any) {
     error.value = err.data?.message || err.message || 'Failed to load services';
     console.error('Error fetching services:', err);

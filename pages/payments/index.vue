@@ -14,13 +14,22 @@
               <p class="text-zinc-400">Track and manage event payments</p>
             </div>
             
-            <button 
-              v-if="authStore.user?.role !== 'client'"
-              @click="showAddModal = true"
-              class="px-6 py-3 bg-primary-600 hover:bg-primary-700 text-white rounded-lg font-medium transition"
-            >
-              ➕ Record Payment
-            </button>
+            <div class="flex gap-3">
+              <button 
+                @click="fetchPayments"
+                class="px-4 py-3 bg-zinc-700 hover:bg-zinc-600 text-white rounded-lg font-medium transition"
+                title="Refresh data"
+              >
+                🔄 Reload
+              </button>
+              <button 
+                v-if="authStore.user?.role !== 'client'"
+                @click="showAddModal = true"
+                class="px-6 py-3 bg-primary-600 hover:bg-primary-700 text-white rounded-lg font-medium transition"
+              >
+                ➕ Record Payment
+              </button>
+            </div>
           </div>
 
           <!-- Filter -->
@@ -324,13 +333,13 @@ const fetchPayments = async () => {
     loading.value = true;
     error.value = null;
 
-    const response = await useFetch<any>('/api/payments', {
+    const response = await $fetch<any>('/api/payments', {
       headers: {
         Authorization: `Bearer ${authStore.token}`
       }
     });
 
-    payments.value = response.data.value?.data || [];
+    payments.value = response.data || [];
   } catch (err: any) {
     console.error('Failed to fetch payments:', err);
     error.value = err.data?.message || 'Failed to load payments';

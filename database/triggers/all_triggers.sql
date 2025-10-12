@@ -19,7 +19,7 @@ CREATE TRIGGER tr_after_payment_insert
 AFTER INSERT ON payments
 FOR EACH ROW
 BEGIN
-    INSERT INTO activity_logs (user_id, action_type, table_name, record_id, new_value, timestamp)
+    INSERT INTO activity_logs (user_id, action_type, table_name, record_id, new_value, created_at)
     VALUES (1, 'payment_created', 'payments', NEW.payment_id, 
             CONCAT('Amount: ', NEW.amount, ', Method: ', NEW.payment_method), NOW());
 END$$
@@ -31,7 +31,7 @@ CREATE TRIGGER tr_after_payment_update
 AFTER UPDATE ON payments
 FOR EACH ROW
 BEGIN
-    INSERT INTO activity_logs (user_id, action_type, table_name, record_id, old_value, new_value, timestamp)
+    INSERT INTO activity_logs (user_id, action_type, table_name, record_id, old_value, new_value, created_at)
     VALUES (1, 'payment_updated', 'payments', NEW.payment_id,
             CONCAT('Status: ', OLD.status), 
             CONCAT('Status: ', NEW.status), NOW());
@@ -69,7 +69,7 @@ CREATE TRIGGER tr_after_event_insert
 AFTER INSERT ON events
 FOR EACH ROW
 BEGIN
-    INSERT INTO activity_logs (user_id, action_type, table_name, record_id, new_value, timestamp)
+    INSERT INTO activity_logs (user_id, action_type, table_name, record_id, new_value, created_at)
     VALUES (NEW.client_id, 'event_created', 'events', NEW.event_id,
             CONCAT('Event: ', NEW.event_name, ', Date: ', NEW.event_date), NOW());
 END$$
@@ -82,7 +82,7 @@ AFTER UPDATE ON events
 FOR EACH ROW
 BEGIN
     IF OLD.status != NEW.status THEN
-        INSERT INTO activity_logs (user_id, action_type, table_name, record_id, old_value, new_value, timestamp)
+        INSERT INTO activity_logs (user_id, action_type, table_name, record_id, old_value, new_value, created_at)
         VALUES (NEW.client_id, 'event_status_changed', 'events', NEW.event_id,
                 OLD.status, NEW.status, NOW());
     END IF;
@@ -95,7 +95,7 @@ CREATE TRIGGER tr_after_service_add
 AFTER INSERT ON event_services
 FOR EACH ROW
 BEGIN
-    INSERT INTO activity_logs (user_id, action_type, table_name, record_id, new_value, timestamp)
+    INSERT INTO activity_logs (user_id, action_type, table_name, record_id, new_value, created_at)
     VALUES (1, 'service_added', 'event_services', NEW.event_service_id,
             CONCAT('Event: ', NEW.event_id, ', Service: ', NEW.service_id, 
                    ', Qty: ', NEW.quantity), NOW());
@@ -147,7 +147,7 @@ BEGIN
         WHERE event_id = NEW.event_id
         AND status NOT IN ('cancelled', 'completed');
         
-        INSERT INTO activity_logs (user_id, action_type, table_name, record_id, new_value, timestamp)
+        INSERT INTO activity_logs (user_id, action_type, table_name, record_id, new_value, created_at)
         VALUES (NEW.client_id, 'event_cancelled_cascade', 'events', NEW.event_id,
                 'All services automatically cancelled', NOW());
     END IF;
@@ -191,7 +191,7 @@ BEGIN
     WHERE event_id = NEW.event_id;
     
     IF v_total_cost > v_budget THEN
-        INSERT INTO activity_logs (user_id, action_type, table_name, record_id, new_value, timestamp)
+        INSERT INTO activity_logs (user_id, action_type, table_name, record_id, new_value, created_at)
         VALUES (1, 'budget_overrun_warning', 'events', NEW.event_id,
                 CONCAT('Budget: ', v_budget, ', Total Cost: ', v_total_cost, 
                        ' (Overrun: ', (v_total_cost - v_budget), ')'), NOW());

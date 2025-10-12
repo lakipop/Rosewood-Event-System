@@ -14,17 +14,26 @@
               <p class="text-zinc-400 text-sm">Manage your events and bookings</p>
             </div>
             
-            <button 
-              v-if="authStore.user?.role !== 'client'"
-              @click="navigateTo('/events/create')"
-              class="px-5 py-2.5 text-white rounded-lg font-medium transition flex items-center gap-2 shadow-lg"
-              style="background: linear-gradient(90deg, #ec4899 0%, #db2777 100%);"
-            >
-              <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-              </svg>
-              Create Event
-            </button>
+            <div class="flex gap-3">
+              <button 
+                @click="fetchEvents"
+                class="px-4 py-2.5 bg-zinc-700 hover:bg-zinc-600 text-white rounded-lg font-medium transition flex items-center gap-2"
+                title="Refresh data"
+              >
+                🔄 Reload
+              </button>
+              <button 
+                v-if="authStore.user?.role !== 'client'"
+                @click="navigateTo('/events/create')"
+                class="px-5 py-2.5 text-white rounded-lg font-medium transition flex items-center gap-2 shadow-lg"
+                style="background: linear-gradient(90deg, #ec4899 0%, #db2777 100%);"
+              >
+                <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                </svg>
+                Create Event
+              </button>
+            </div>
           </div>
 
           <!-- Stats Dashboard -->

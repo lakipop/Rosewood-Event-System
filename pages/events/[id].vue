@@ -32,6 +32,14 @@
                   {{ formatStatus(event.status) }}
                 </span>
               </div>
+              
+              <button 
+                @click="fetchEvent"
+                class="px-4 py-2 bg-zinc-700 hover:bg-zinc-600 text-white rounded-lg font-medium transition"
+                title="Refresh data"
+              >
+                🔄 Reload
+              </button>
             </div>
 
             <!-- Event Info Grid -->
