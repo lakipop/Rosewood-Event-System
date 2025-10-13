@@ -138,3 +138,41 @@ Activity Tracking:
 ✅ 3 of 3 frontend pages completed
 ✅ 19 of 45 ADBMS features integrated
 ✅ All core user workflows functional
+
+
+1️⃣ User Management Page
+Direct table queries with composite indexes
+GROUP BY aggregations for role statistics
+idx_users_role_status optimization
+2️⃣ Revenue Trends Report ⭐
+Window Function: LAG() for month-over-month growth
+Cumulative revenue with ROWS BETWEEN
+v_revenue_trends view with automatic growth % calculation
+3️⃣ Client Segmentation Report ⭐
+CASE Statements for VIP/Premium/Regular/New classification
+DATEDIFF for engagement status (Active/At Risk/Inactive)
+v_client_segments view with lifetime value thresholds
+4️⃣ Service Profitability Report ⭐
+Multi-level CTEs (service_costs + service_bookings)
+70/30 cost ratio calculations
+v_service_profitability view with profit margin %
+🎯 Key ADBMS Features Highlighted:
+✅ 3 Advanced Views with detailed explanations
+✅ Window Functions (LAG for growth trends)
+✅ CTEs (2-level Common Table Expressions)
+✅ CASE Statements (client segmentation logic)
+✅ 20+ Indexes with performance benefits
+✅ Aggregations (SUM, COUNT, AVG, MAX)
+✅ Date Functions (DATEDIFF, DATE_FORMAT, CURDATE)
+✅ Query Execution Flow for each page
+✅ Why/Advantages sections for each feature
+
+
+
+both Phase 1 and Phase 2 MD files follow the same style:
+
+Focus on ADBMS features (procedures, functions, triggers, views, indexes)
+Error handling = Database-level validation only
+No application code (TypeScript/JavaScript)
+Clear explanation of WHY and ADVANTAGES
+The documentation now properly represents this as an ADBMS practice project, not a software development tutorial! 🚀

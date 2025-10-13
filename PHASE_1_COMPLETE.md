@@ -81,18 +81,6 @@ CREATE FULLTEXT INDEX idx_users_search ON users(full_name, email);
 5. **Search** → Uses idx_events_search full-text index
 6. **Stats calculation** → Uses idx_events_status for fast counting
 
-#### Error Handling
-```typescript
-try {
-  const events = await query(sql, params)
-  const stats = await query(statsQuery, params)
-  return { success: true, data: events, stats }
-} catch (error) {
-  console.error('Get events error:', error)
-  throw createError({ statusCode: 500, message: 'Failed to fetch events' })
-}
-```
-
 ---
 
 ## 2️⃣ CREATE EVENT PAGE
@@ -163,23 +151,21 @@ CREATE INDEX idx_event_types_is_active ON event_types(is_active);
 CREATE INDEX idx_events_client_id ON events(client_id);
 ```
 
-#### Error Handling
-```typescript
-try {
-  await query('CALL sp_create_event(...)', params)
-  const result = await query('SELECT @event_id, @message')
-  
-  if (result[0].event_id === 0) {
-    throw createError({ statusCode: 400, message: result[0].message })
-  }
-  
-  const event = await query('SELECT * FROM v_event_summary WHERE event_id = ?', [eventId])
-  return { success: true, message, data: event[0] }
-} catch (error) {
-  console.error('Create event error:', error)
-  throw createError({ statusCode: 500, message: 'Failed to create event' })
-}
-```
+#### Query Execution Flow
+1. **Call sp_create_event()** → Validates client + event type using idx_users_role_status, idx_event_types_is_active
+2. **Procedure validation** → Returns @event_id and @message (error handling inside procedure)
+3. **Trigger: tr_after_event_insert** → Auto-logs activity after successful insert
+4. **Query v_event_summary** → Uses idx_events_client_id to return created event
+
+#### Error Handling (ADBMS Level)
+**Stored Procedure `sp_create_event` handles:**
+- Returns `@event_id = 0` and error message if validation fails
+- Client not found or inactive
+- Event type not found or inactive
+- Invalid date (past date)
+- Invalid guest count or budget
+
+**Why:** Database-level error handling ensures validation cannot be bypassed
 
 ---
 
@@ -305,28 +291,17 @@ CREATE INDEX idx_activity_logs_table_name ON activity_logs(table_name);
 5. **Query v_payment_summary** → Uses idx_payments_event_id
 6. **Query v_user_activity** → Uses idx_activity_logs_table_name
 
-#### Error Handling
-```typescript
-try {
-  await query('CALL sp_get_event_summary(?)', [eventId])
-  const eventData = await query('SELECT * FROM v_event_summary WHERE event_id = ?', [eventId])
-  
-  if (!eventData || eventData.length === 0) {
-    throw createError({ statusCode: 404, message: 'Event not found' })
-  }
-  
-  const financials = await query('SELECT fn_calculate_event_cost(?), ...', [eventId, ...])
-  const services = await query('SELECT * FROM event_services ...', [eventId])
-  const payments = await query('SELECT * FROM v_payment_summary ...', [eventId])
-  const activities = await query('SELECT * FROM v_user_activity ...', [eventId])
-  
-  return { success: true, event, financials, services, payments, activities }
-} catch (error) {
-  console.error('Error fetching event details:', error)
-  if (error.statusCode) throw error
-  throw createError({ statusCode: 500, message: 'Failed to fetch event details' })
-}
-```
+#### Error Handling (ADBMS Level)
+**Stored Procedure `sp_get_event_summary` handles:**
+- Validates event exists
+- Returns error message if event not found
+
+**Functions return NULL-safe values:**
+- `fn_calculate_event_cost()` → Returns 0 if no services
+- `fn_calculate_total_paid()` → Returns 0 if no payments
+- `fn_calculate_balance()` → Uses COALESCE for NULL handling
+
+**Why:** Database functions handle edge cases (NULL values, missing data) automatically
 
 ---
 
@@ -388,31 +363,26 @@ CREATE INDEX idx_event_services_event_status ON event_services(event_id, status)
 CREATE INDEX idx_event_services_event_id ON event_services(event_id);
 ```
 
-#### Error Handling
-```typescript
-try {
-  await query('CALL sp_add_event_service(?, ?, ?, ?, @success, @message)', params)
-  const result = await query('SELECT @success, @message')
-  
-  if (!result[0].success) {
-    throw createError({ statusCode: 400, message: result[0].message })
-  }
-  
-  // Retrieve added service with JOIN
-  const service = await query(`
-    SELECT es.*, s.service_name, s.category, 
-           (es.quantity * es.agreed_price) as subtotal
-    FROM event_services es
-    JOIN services s ON es.service_id = s.service_id
-    WHERE es.event_id = ? ORDER BY es.added_at DESC LIMIT 1
-  `, [eventId])
-  
-  return { success: true, message: result[0].message, eventService: service[0] }
-} catch (error) {
-  console.error('Add service error:', error)
-  throw createError({ statusCode: error.statusCode || 500, message: error.message })
-}
-```
+#### Query Execution Flow
+1. **Call sp_add_event_service()** → Validates event + service using indexes
+2. **Procedure checks duplicate** → Uses idx_event_services_event_status
+3. **Trigger: tr_after_service_add** → Auto-logs service addition
+4. **Trigger: tr_budget_overrun_warning** → Checks if over budget, logs warning
+5. **Retrieve added service** → Uses idx_event_services_event_id + JOIN with services table
+
+#### Error Handling (ADBMS Level)
+**Stored Procedure `sp_add_event_service` handles:**
+- Returns `@success = FALSE` and error message if validation fails
+- Event not found or cancelled
+- Service not found or unavailable
+- Duplicate service already added
+- Invalid quantity or price
+
+**Trigger `tr_budget_overrun_warning` handles:**
+- Automatically logs warning if total_cost > budget
+- No manual checking needed
+
+**Why:** Database-level validation and automatic warnings
 
 ---
 
@@ -504,52 +474,29 @@ CREATE INDEX idx_payments_date_status ON payments(payment_date, status);
 2. **Call sp_process_payment()** → Validates and inserts
 3. **Trigger: tr_generate_payment_reference** → Fires BEFORE INSERT
 4. **Trigger: tr_after_payment_insert** → Fires AFTER INSERT (logs activity)
-5. **Trigger: tr_update_event_status_on_payment** → Fires AFTER INSERT (checks balance, updates event status)
+#### Query Execution Flow
+1. **Validate event** → Uses PK lookup + idx_events_status
+2. **Call sp_process_payment()** → Validates and inserts
+3. **Trigger: tr_generate_payment_reference** → Fires BEFORE INSERT (auto-generates reference if NULL)
+4. **Trigger: tr_after_payment_insert** → Fires AFTER INSERT (logs activity)
+5. **Trigger: tr_update_event_status_on_payment** → Fires AFTER INSERT (checks balance, auto-confirms if fully paid)
 6. **Query v_payment_summary** → Uses idx_payments_event_id to retrieve payment details
 
-#### Error Handling
-```typescript
-try {
-  // Validate event exists
-  const events = await query('SELECT * FROM events WHERE event_id = ?', [event_id])
-  if (!events || events.length === 0) {
-    throw createError({ statusCode: 404, message: 'Event not found' })
-  }
-  
-  // Process payment via stored procedure
-  await query('CALL sp_process_payment(?, ?, ?, ?, ?, @payment_id, @message)', params)
-  const result = await query('SELECT @payment_id, @message')
-  
-  if (!result[0].payment_id) {
-    throw createError({ statusCode: 400, message: result[0].message })
-  }
-  
-  // Get payment details from view
-  const payment = await query('SELECT * FROM v_payment_summary WHERE payment_id = ?', 
-                               [result[0].payment_id])
-  
-  // Check if event was auto-confirmed by trigger
-  const updatedEvent = await query('SELECT status FROM events WHERE event_id = ?', [event_id])
-  const eventConfirmed = updatedEvent[0]?.status === 'confirmed'
-  
-  return { 
-    success: true, 
-    message: result[0].message, 
-    eventConfirmed,  // Notify frontend if trigger auto-confirmed
-    data: payment[0] 
-  }
-} catch (error) {
-  console.error('Payment error:', error)
-  throw createError({ statusCode: error.statusCode || 500, message: error.message })
-}
-```
+#### Error Handling (ADBMS Level)
+**Stored Procedure `sp_process_payment` handles:**
+- Returns `@payment_id = NULL` and error message if validation fails
+- Event not found or cancelled
+- Invalid payment amount (negative or zero)
+- Overpayment prevention (amount > remaining balance)
+- Invalid payment method
 
----
+**Triggers handle automatic operations:**
+- `tr_generate_payment_reference`: Auto-generates reference if not provided
+- `tr_update_event_status_on_payment`: Auto-confirms event when fully paid
 
-## 📊 SUMMARY: ADBMS Features Usage
+**Why:** Database-level payment validation prevents invalid transactions
 
-### Stored Procedures Used: 4
-1. `sp_create_event` - Event creation with validation
+---`sp_create_event` - Event creation with validation
 2. `sp_get_event_summary` - Event data retrieval
 3. `sp_add_event_service` - Service addition with validation
 4. `sp_process_payment` - Payment processing with validation
