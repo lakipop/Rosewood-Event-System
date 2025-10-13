@@ -500,17 +500,20 @@ END as client_segment
 ## 💡 Why These Features Matter
 
 ### Performance Benefits
+
 - **Window Functions**: Single-pass data processing (vs. multiple subqueries)
 - **CTEs**: Query optimizer can better plan execution
 - **Indexes**: 10-100x faster queries with proper indexing
 - **Views**: Pre-optimized query plans
 
 ### Business Logic Benefits
+
 - **CASE Statements**: Business rules in database (single source of truth)
 - **Date Functions**: Accurate calculations at database level
 - **Aggregations**: Real-time metrics without caching
 
 ### Development Benefits
+
 - **CTEs**: Complex queries broken into understandable steps
 - **Views**: Application code stays simple
 - **Consistent Results**: Same calculation logic everywhere
