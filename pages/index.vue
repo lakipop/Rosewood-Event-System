@@ -9,10 +9,10 @@
   <div v-else class="min-h-screen bg-zinc-800">
     <AppHeader />
     
-    <div class="flex">
+    <div class="flex pt-16">
       <AppSidebar />
       
-      <main class="flex-1 lg:ml-64 p-4 sm:p-6">
+      <main class="flex-1 p-4 sm:p-6 transition-all duration-300" :class="{ 'lg:ml-64': true }">
         <div class="w-full max-w-7xl mx-auto space-y-6">
     <!-- Header -->
     <div>

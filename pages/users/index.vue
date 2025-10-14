@@ -9,7 +9,7 @@
   <div v-else class="min-h-screen bg-zinc-800">
     <AppHeader />
     
-    <div class="flex">
+    <div class="flex pt-16">
       <AppSidebar />
       
       <main class="flex-1 lg:ml-64 p-4 sm:p-6">
