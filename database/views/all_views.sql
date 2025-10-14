@@ -70,10 +70,28 @@ SELECT
     e.event_time,
     e.venue,
     e.guest_count,
+    e.status,
     et.type_name,
     u.full_name as client_name,
     u.phone as client_phone,
-    DATEDIFF(e.event_date, CURDATE()) as days_until
+    DATEDIFF(e.event_date, CURDATE()) as days_until,
+    CASE 
+        WHEN COALESCE(
+            (SELECT SUM(es.quantity * es.agreed_price) 
+             FROM event_services es 
+             WHERE es.event_id = e.event_id), 
+            e.budget,
+            0
+        ) <= COALESCE(
+            (SELECT SUM(amount) FROM payments WHERE event_id = e.event_id AND status = 'completed'), 
+            0
+        ) THEN 'Paid'
+        WHEN COALESCE(
+            (SELECT SUM(amount) FROM payments WHERE event_id = e.event_id AND status = 'completed'), 
+            0
+        ) > 0 THEN 'Partial'
+        ELSE 'Unpaid'
+    END as payment_status
 FROM events e
 JOIN event_types et ON e.event_type_id = et.event_type_id
 JOIN users u ON e.client_id = u.user_id
@@ -133,6 +151,16 @@ SELECT
     al.record_id,
     al.old_value,
     al.new_value,
+    CONCAT(
+        u.full_name, 
+        ' performed ', 
+        al.action_type, 
+        ' on ', 
+        al.table_name,
+        ' (ID: ', 
+        COALESCE(al.record_id, 'N/A'), 
+        ')'
+    ) as description,
     al.created_at
 FROM activity_logs al
 LEFT JOIN users u ON al.user_id = u.user_id

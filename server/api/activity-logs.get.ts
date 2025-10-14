@@ -44,10 +44,16 @@ export default defineEventHandler(async (event) => {
       data: logs
     }
   } catch (error: any) {
-    console.error('Database error:', error)
+    console.error('Database error in activity-logs:', error)
+    console.error('Error details:', {
+      message: error.message,
+      code: error.code,
+      sqlMessage: error.sqlMessage
+    })
     throw createError({
       statusCode: 500,
-      message: 'Failed to fetch activity logs'
+      message: 'Failed to fetch activity logs',
+      data: { error: error.message }
     })
   }
 })

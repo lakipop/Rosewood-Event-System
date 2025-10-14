@@ -29,10 +29,16 @@ export default defineEventHandler(async (event) => {
       data: events
     }
   } catch (error: any) {
-    console.error('Database error:', error)
+    console.error('Database error in upcoming-events:', error)
+    console.error('Error details:', {
+      message: error.message,
+      code: error.code,
+      sqlMessage: error.sqlMessage
+    })
     throw createError({
       statusCode: 500,
-      message: 'Failed to fetch upcoming events'
+      message: 'Failed to fetch upcoming events',
+      data: { error: error.message }
     })
   }
 })

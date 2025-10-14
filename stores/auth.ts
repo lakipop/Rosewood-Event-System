@@ -27,10 +27,10 @@ export const useAuthStore = defineStore('auth', {
         this.user = response.user
         this.isAuthenticated = true
 
-        // Store token in localStorage
+        // Store token in sessionStorage
         if (import.meta.client) {
-          localStorage.setItem('auth_token', response.token)
-          localStorage.setItem('user', JSON.stringify(response.user))
+          sessionStorage.setItem('auth_token', response.token)
+          sessionStorage.setItem('user', JSON.stringify(response.user))
         }
 
         return { success: true }
@@ -54,10 +54,10 @@ export const useAuthStore = defineStore('auth', {
         this.user = response.user
         this.isAuthenticated = true
 
-        // Store token in localStorage
+        // Store token in sessionStorage
         if (import.meta.client) {
-          localStorage.setItem('auth_token', response.token)
-          localStorage.setItem('user', JSON.stringify(response.user))
+          sessionStorage.setItem('auth_token', response.token)
+          sessionStorage.setItem('user', JSON.stringify(response.user))
         }
 
         return { success: true }
@@ -76,15 +76,15 @@ export const useAuthStore = defineStore('auth', {
       this.isAuthenticated = false
 
       if (import.meta.client) {
-        localStorage.removeItem('auth_token')
-        localStorage.removeItem('user')
+        sessionStorage.removeItem('auth_token')
+        sessionStorage.removeItem('user')
       }
     },
 
     initAuth() {
       if (import.meta.client) {
-        const token = localStorage.getItem('auth_token')
-        const userStr = localStorage.getItem('user')
+        const token = sessionStorage.getItem('auth_token')
+        const userStr = sessionStorage.getItem('user')
 
         if (token && userStr) {
           this.token = token
