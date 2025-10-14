@@ -777,71 +777,12 @@ Rosewood-Event-System/
 
 ---
 
-## 🎯 ADBMS Grade Expectations
-
-**Database Features (80 points):**
-- Procedures (5): 20/20 ✅
-- Functions (7): 20/20 ✅
-- Views (7): 15/15 ✅
-- Triggers (8): 15/15 ✅
-- Overall Quality: 10/10 ✅
-
-**Application (20 points):**
-- Functionality: 10/10 ✅
-- UI/UX: 5/5 ✅
-- Documentation: 5/5 ✅
-
-**Expected Total: 95-100/100** ✅
-
----
-
-## 🐛 Troubleshooting
-
-### Services Page Not Loading?
-```javascript
-// Check if services API is working
-fetch('/api/services').then(r => r.json()).then(console.log);
-
-// Should return: { success: true, services: [...] }
-```
-
-### 401 Unauthorized Error?
-```javascript
-// Check if token exists
-console.log(localStorage.getItem('auth_token'));
-
-// Login again to refresh token
-```
-
-### Database Connection Error?
-```bash
-# Check .env file exists
-# Check MySQL is running
-# Check database credentials
-```
-
----
-
 ## 📞 Contact
 
-**Developer:** Lakindu Akash  
+**Developer:** Lakindu Sadumina  
 **Email:** lakindu02@gmail.com  
 **Course:** Advanced Database Management Systems (ADBMS)  
 **Date:** October 2025
-
----
-
-## ✅ Submission Checklist
-
-- [x] All database features implemented (80%)
-- [x] Application functional (95%)
-- [x] Sample data loaded (100+ records)
-- [x] Documentation complete
-- [x] Code organized and clean
-- [x] Testing verified
-- [x] Demo script prepared
-
-**Status: READY FOR SUBMISSION** 🚀
 
 ---
 

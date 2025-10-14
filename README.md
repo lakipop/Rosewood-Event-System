@@ -2,7 +2,7 @@
 
 > Event management system with MySQL ADBMS features (80%) and minimal UI (20%).
 
-**Developer:** ADBMS Team  | **Email:** lakindu02@gmail.com
+**Developer:** ADBMS Team No. ?  | **Email:** lakindu02@gmail.com
 
 ---
 
@@ -113,15 +113,79 @@ TOTAL ADBMS FEATURES: 45
 
 ---
 
-## 📁 Structure
+
+## 📁 Project Structure
 
 ```
-database/          # SQL (procedures, functions, views, triggers)
-server/api/        # Backend APIs
-pages/             # Frontend (dashboard, events, services, payments)
-components/        # Vue components
-stores/            # State management
+Rosewood-Event-System/
+│
+├── 📄 README.md                    # Simple project overview
+├── 📖 PROJECT_GUIDE.md            # THIS FILE - Complete documentation
+│
+├── 🗄️ database/                    # All SQL scripts
+│   ├── schema/
+│   │   └── create_tables.sql      # 7 tables with relationships
+│   ├── procedures/
+│   │   ├── sp_create_event.sql
+│   │   ├── sp_add_event_service.sql
+│   │   ├── sp_process_payment.sql
+│   │   ├── sp_update_event_status.sql
+│   │   ├── sp_get_event_summary.sql
+│   │   └── all_procedures.sql     # All 5 procedures
+│   ├── functions/
+│   │   ├── fn_calculate_*.sql
+│   │   └── all_functions.sql      # All 7 functions
+│   ├── views/
+│   │   ├── v_event_summary.sql
+│   │   └── all_views.sql          # All 7 views
+│   ├── triggers/
+│   │   ├── tr_after_payment.sql
+│   │   └── all_triggers.sql       # All 8 triggers
+│   ├── indexes/
+│   │   └── all_indexes.sql        # 30+ indexes
+│   └── seed_data.sql              # 100+ sample records
+│
+├── 📡 server/                      # Backend
+│   ├── api/
+│   │   ├── auth/                  # Login, Register
+│   │   ├── events/                # Events CRUD + services + payments
+│   │   ├── services/              # Services CRUD
+│   │   └── payments/              # Payments CRUD
+│   ├── middleware/
+│   │   └── auth.ts                # JWT verification
+│   ├── db/
+│   │   └── connection.ts          # MySQL connection
+│   └── utils/
+│       ├── jwt.ts                 # Token generation
+│       └── validation.ts          # Input validation
+│
+├── 🎨 pages/                       # Frontend
+│   ├── index.vue                  # Dashboard
+│   ├── auth/
+│   │   ├── login.vue              # Login page
+│   │   └── register.vue           # Registration
+│   ├── events/
+│   │   ├── index.vue              # Events listing
+│   │   └── [id].vue               # Event details
+│   └── services/
+│       └── index.vue              # Services catalog ✅
+│
+├── 🧩 components/
+│   └── common/
+│       ├── AppHeader.vue          # Header component
+│       └── AppSidebar.vue         # Sidebar navigation
+│
+├── 🏪 stores/
+│   ├── auth.ts                    # Auth state (Pinia)
+│   └── events.ts                  # Events state
+│
+└── ⚙️ Configuration
+    ├── nuxt.config.ts             # Nuxt configuration
+    ├── tailwind.config.ts         # Tailwind theme
+    ├── tsconfig.json              # TypeScript config
+    └── package.json               # Dependencies
 ```
+
 
 ---
 
