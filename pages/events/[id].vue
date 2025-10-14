@@ -2,7 +2,7 @@
   <div class="min-h-screen bg-zinc-950">
     <AppHeader />
     
-    <div class="flex">
+    <div class="flex pt-16">
       <AppSidebar />
       
       <main class="flex-1 ml-64 p-8">
@@ -25,12 +25,28 @@
                   <span>←</span> Back to Events
                 </button>
                 <h1 class="text-3xl font-bold text-zinc-100 mb-2">{{ event.event_name }}</h1>
-                <span 
-                  :class="getStatusColor(event.status)"
-                  class="px-3 py-1 rounded-full text-xs font-medium"
-                >
-                  {{ formatStatus(event.status) }}
-                </span>
+                <div class="flex items-center gap-3">
+                  <span 
+                    :class="getStatusColor(event.status)"
+                    class="px-3 py-1 rounded-full text-xs font-medium"
+                  >
+                    {{ formatStatus(event.status) }}
+                  </span>
+                  
+                  <!-- Status Update Dropdown -->
+                  <select
+                    v-model="selectedStatus"
+                    @change="updateStatus"
+                    class="px-3 py-1 rounded-lg text-xs font-medium bg-zinc-800 border border-zinc-700 text-zinc-300 hover:border-secondary-500 transition"
+                  >
+                    <option value="">Change Status</option>
+                    <option value="inquiry">Inquiry</option>
+                    <option value="confirmed">Confirmed</option>
+                    <option value="in_progress">In Progress</option>
+                    <option value="completed">Completed</option>
+                    <option value="cancelled">Cancelled</option>
+                  </select>
+                </div>
               </div>
               
               <button 
@@ -304,6 +320,7 @@ const loading = ref(true);
 const loadingPayments = ref(true);
 const showPaymentModal = ref(false);
 const savingPayment = ref(false);
+const selectedStatus = ref(''); // For status update dropdown
 
 const paymentForm = ref({
   amount: null as number | null,
@@ -405,6 +422,38 @@ const deletePayment = async (paymentId: number) => {
   } catch (error: any) {
     console.error('Failed to delete payment:', error);
     alert(error.data?.message || 'Failed to delete payment');
+  }
+};
+
+const updateStatus = async () => {
+  if (!selectedStatus.value) return;
+  
+  if (!confirm(`Are you sure you want to change status to "${selectedStatus.value}"?`)) {
+    selectedStatus.value = '';
+    return;
+  }
+
+  try {
+    const response = await $fetch(`/api/events/${eventId}/status`, {
+      method: 'PUT',
+      body: {
+        status: selectedStatus.value,
+        user_id: authStore.user?.userId
+      },
+      headers: {
+        Authorization: `Bearer ${authStore.token}`
+      }
+    });
+
+    if (response.success) {
+      alert('✅ Event status updated successfully!');
+      await fetchEvent(); // Refresh event data
+    }
+  } catch (error: any) {
+    console.error('Failed to update status:', error);
+    alert(error.data?.message || 'Failed to update status');
+  } finally {
+    selectedStatus.value = '';
   }
 };
 

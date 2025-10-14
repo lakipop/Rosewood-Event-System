@@ -144,6 +144,21 @@
           </div>
           <span class="font-medium text-sm">User Management</span>
         </NuxtLink>
+
+        <NuxtLink
+          v-if="authStore.user?.role === 'admin'"
+          to="/activity-logs"
+          @click="closeSidebar"
+          class="flex items-center gap-3 px-4 py-2.5 rounded-lg text-zinc-300 hover:text-white transition-all duration-200 group hover:bg-gradient-to-r hover:from-white/10 hover:to-white/5"
+          active-class="bg-gradient-to-r from-orange-600/30 to-orange-700/20 text-white border-l-2 border-orange-500 shadow-lg shadow-orange-500/20"
+        >
+          <div class="w-8 h-8 rounded-lg flex items-center justify-center transition-all duration-200 group-hover:scale-110 group-hover:rotate-3" style="background: linear-gradient(135deg, rgba(251, 146, 60, 0.15) 0%, rgba(249, 115, 22, 0.08) 100%);">
+            <svg class="w-5 h-5" style="color: #fb923c;" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+            </svg>
+          </div>
+          <span class="font-medium text-sm">Activity Logs</span>
+        </NuxtLink>
       </nav>
     </div>
   </aside>

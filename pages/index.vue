@@ -107,6 +107,64 @@
             </div>
           </div>
 
+          <!-- Upcoming Events Alert -->
+          <div v-if="upcomingEventsList.length > 0" class="bg-gradient-to-r from-orange-900/20 to-amber-900/20 border border-orange-700/50 rounded-xl p-5">
+            <div class="flex items-start gap-3 mb-4">
+              <div class="p-2 rounded-lg bg-orange-500/20">
+                <svg class="w-5 h-5 text-orange-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </div>
+              <div class="flex-1">
+                <h2 class="text-lg font-semibold text-orange-100 mb-1">Upcoming Events (Next 7 Days)</h2>
+                <p class="text-orange-300/70 text-sm">Events requiring attention and preparation</p>
+              </div>
+            </div>
+            
+            <div class="space-y-2">
+              <div 
+                v-for="event in upcomingEventsList" 
+                :key="event.event_id"
+                class="flex items-center justify-between p-4 bg-zinc-900/50 hover:bg-zinc-900/80 rounded-lg transition cursor-pointer border border-zinc-800/50"
+                @click="navigateTo(`/events/${event.event_id}`)"
+              >
+                <div class="flex-1">
+                  <h3 class="text-sm font-semibold text-white">{{ event.event_name }}</h3>
+                  <div class="flex items-center gap-4 mt-1.5 text-xs">
+                    <span class="flex items-center gap-1.5 text-zinc-400">
+                      <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                      </svg>
+                      {{ formatDate(event.event_date) }}
+                    </span>
+                    <span 
+                      :class="event.days_until <= 3 ? 'text-orange-400 font-semibold' : 'text-yellow-400'"
+                      class="flex items-center gap-1.5"
+                    >
+                      <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                      {{ event.days_until === 0 ? 'Today!' : event.days_until === 1 ? 'Tomorrow' : `In ${event.days_until} days` }}
+                    </span>
+                    <span v-if="event.payment_status !== 'paid'" class="flex items-center gap-1.5 text-red-400">
+                      <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                      </svg>
+                      Payment Pending
+                    </span>
+                  </div>
+                </div>
+                <span 
+                  :class="getStatusBadgeClass(event.status)"
+                  :style="getStatusStyle(event.status)"
+                  class="px-3 py-1.5 text-xs font-medium rounded-full capitalize whitespace-nowrap"
+                >
+                  {{ event.status.replace('_', ' ') }}
+                </span>
+              </div>
+            </div>
+          </div>
+
           <!-- Recent Events -->
           <div class="bg-zinc-900 border border-zinc-800 rounded-xl p-5">
             <h2 class="text-lg font-semibold text-zinc-100 mb-4">Recent Events</h2>
@@ -183,6 +241,7 @@ definePageMeta({
 
 const authStore = useAuthStore();
 const events = ref<any[]>([]);
+const upcomingEventsList = ref<any[]>([]);
 const loading = ref(true);
 const isReady = ref(false);
 
@@ -250,8 +309,6 @@ const fetchEvents = async () => {
   try {
     loading.value = true;
     console.log('🔍 Fetching events...');
-    console.log('📝 Token:', authStore.token?.substring(0, 20) + '...');
-    console.log('👤 User:', authStore.user);
     
     const response = await $fetch<any>('/api/events', {
       headers: {
@@ -259,9 +316,17 @@ const fetchEvents = async () => {
       }
     });
     
-    console.log('✅ Events response:', response);
     events.value = response.data || [];
-    console.log('📊 Events count:', events.value.length);
+    
+    // Fetch upcoming events
+    const upcomingResponse = await $fetch<any>('/api/upcoming-events?days=7', {
+      headers: {
+        Authorization: `Bearer ${authStore.token}`
+      }
+    });
+    
+    upcomingEventsList.value = upcomingResponse.data || [];
+    console.log('✅ Events loaded');
   } catch (error: any) {
     console.error('❌ Failed to fetch events:', error);
     console.error('Error details:', {
