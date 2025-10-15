@@ -74,7 +74,7 @@
             <button
               type="submit"
               :disabled="loading"
-              class="w-full bg-gradient-to-r from-zinc-800 via-rose-800/80 to-zinc-800 hover:from-secondary-700 hover:to-secondary-800 text-white font-semibold py-3 px-4 rounded-xl transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-secondary-500/20 hover:shadow-secondary-500/40 hover:scale-[1.02] active:scale-[0.98]"
+              class="w-full bg-gradient-to-r  from-zinc-900 via-rose-800/60 to-zinc-900 hover:from-rose-800/50 hover:via-zinc-900 hover:to-rose-800/50 text-white font-semibold py-3 px-4 rounded-xl transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-secondary-500/20 hover:shadow-secondary-500/40 active:scale-[0.98]"
             >
               <span v-if="!loading" class="flex items-center justify-center gap-2">
                 <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">

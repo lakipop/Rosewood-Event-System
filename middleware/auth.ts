@@ -1,14 +1,15 @@
 export default defineNuxtRouteMiddleware((to, from) => {
   const authStore = useAuthStore();
   
-  // Initialize auth from sessionStorage if not already done
-  if (!authStore.isAuthenticated && import.meta.client) {
-    authStore.initAuth();
-  }
+  console.log('🛡️ [Auth Middleware] Checking auth for:', to.path)
+  console.log('🛡️ [Auth Middleware] isAuthenticated:', authStore.isAuthenticated)
+  console.log('🛡️ [Auth Middleware] User:', authStore.user?.email)
   
   // Check if user is authenticated
-  if (!authStore.isAuthenticated || !authStore.user || !authStore.token) {
-    // Redirect to login page
+  if (!authStore.isAuthenticated) {
+    console.log('❌ [Auth Middleware] Not authenticated, redirecting to login')
     return navigateTo('/auth/login');
   }
+  
+  console.log('✅ [Auth Middleware] Authenticated, allowing access')
 });

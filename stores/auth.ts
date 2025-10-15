@@ -83,13 +83,25 @@ export const useAuthStore = defineStore('auth', {
 
     initAuth() {
       if (import.meta.client) {
+        console.log('🔍 [Auth] Initializing auth from sessionStorage...')
         const token = sessionStorage.getItem('auth_token')
         const userStr = sessionStorage.getItem('user')
 
+        console.log('🔍 [Auth] Token exists:', !!token)
+        console.log('🔍 [Auth] User exists:', !!userStr)
+
         if (token && userStr) {
-          this.token = token
-          this.user = JSON.parse(userStr)
-          this.isAuthenticated = true
+          try {
+            this.token = token
+            this.user = JSON.parse(userStr)
+            this.isAuthenticated = true
+            console.log('✅ [Auth] Auth restored successfully:', this.user?.email)
+          } catch (error) {
+            console.error('❌ [Auth] Failed to parse user data:', error)
+            this.logout()
+          }
+        } else {
+          console.log('⚠️ [Auth] No stored auth data found')
         }
       }
     }
