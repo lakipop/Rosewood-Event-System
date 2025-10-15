@@ -85,7 +85,7 @@
 
               <div class="flex justify-between items-end">
                 <div>
-                  <div class="text-2xl font-bold text-primary-500 text-rose-400/80">
+                  <div class="text-2xl font-bold text-primary-500 text-rose-200/80">
                     Rs. {{ formatNumber(service.unit_price) }}
                   </div>
                   <div class="text-xs text-zinc-500">{{ formatUnitType(service.unit_type) }}</div>

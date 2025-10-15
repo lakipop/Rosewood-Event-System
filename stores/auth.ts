@@ -23,14 +23,19 @@ export const useAuthStore = defineStore('auth', {
           body: { email, password }
         })
 
+        console.log('🔑 [Auth Store] Login successful, response:', response)
+
         this.token = response.token
         this.user = response.user
         this.isAuthenticated = true
 
         // Store token in sessionStorage
         if (import.meta.client) {
+          console.log('💾 [Auth Store] Saving to sessionStorage...')
           sessionStorage.setItem('auth_token', response.token)
           sessionStorage.setItem('user', JSON.stringify(response.user))
+          console.log('💾 [Auth Store] Saved! Token:', sessionStorage.getItem('auth_token')?.substring(0, 20) + '...')
+          console.log('💾 [Auth Store] Saved! User:', sessionStorage.getItem('user'))
         }
 
         return { success: true }
@@ -82,27 +87,37 @@ export const useAuthStore = defineStore('auth', {
     },
 
     initAuth() {
+      console.log('🔍 [Auth] initAuth called, import.meta.client:', import.meta.client)
+      
       if (import.meta.client) {
         console.log('🔍 [Auth] Initializing auth from sessionStorage...')
+        
         const token = sessionStorage.getItem('auth_token')
         const userStr = sessionStorage.getItem('user')
 
-        console.log('🔍 [Auth] Token exists:', !!token)
-        console.log('🔍 [Auth] User exists:', !!userStr)
+        console.log('🔍 [Auth] Token from storage:', token ? `${token.substring(0, 20)}...` : 'null')
+        console.log('🔍 [Auth] User from storage:', userStr ? 'exists' : 'null')
 
         if (token && userStr) {
           try {
+            const parsedUser = JSON.parse(userStr)
             this.token = token
-            this.user = JSON.parse(userStr)
+            this.user = parsedUser
             this.isAuthenticated = true
-            console.log('✅ [Auth] Auth restored successfully:', this.user?.email)
+            console.log('✅ [Auth] Auth restored successfully')
+            console.log('✅ [Auth] User email:', this.user?.email)
+            console.log('✅ [Auth] User role:', this.user?.role)
+            console.log('✅ [Auth] isAuthenticated:', this.isAuthenticated)
           } catch (error) {
             console.error('❌ [Auth] Failed to parse user data:', error)
             this.logout()
           }
         } else {
-          console.log('⚠️ [Auth] No stored auth data found')
+          console.log('⚠️ [Auth] No stored auth data found in sessionStorage')
+          console.log('⚠️ [Auth] Current state - isAuthenticated:', this.isAuthenticated)
         }
+      } else {
+        console.log('⚠️ [Auth] Skipping initAuth on server-side')
       }
     }
   },
