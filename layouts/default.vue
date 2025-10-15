@@ -10,7 +10,7 @@
       />
       
       <main 
-        class="flex-1 pt-16 transition-all duration-300"
+        class="flex-1 pt-16 transition-all duration-300 "
         :class="authStore.isAuthenticated && isSidebarOpen ? 'lg:ml-64' : ''"
       >
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">

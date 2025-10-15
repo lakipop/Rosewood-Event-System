@@ -1,2 +1,47 @@
 @import "tailwindcss";
 
+/* Import Nunito Font */
+@import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700&display=swap');
+
+/* Apply Nunito font globally */
+body {
+  font-family: 'Nunito', sans-serif;
+  zoom: 1;
+  font-size: 14px;
+  background-color: rgb(19, 19, 19);
+  padding-left: 10px;
+}
+
+/* Custom Styles */
+h1, h2, h3, h4, h5, h6 {
+  font-weight: 600;
+}
+html {
+  scroll-behavior: smooth;
+  font-size: 15px;
+
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgb(226, 30, 62);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgb(142, 9, 38);
+}
+
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgb(186, 23, 50) transparent;
+}
