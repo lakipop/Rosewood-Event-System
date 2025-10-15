@@ -221,11 +221,10 @@ Rosewood-Event-System/
 ---
 
 ## 📚 Docs
-
 - **[PROJECT_GUIDE.md](PROJECT_GUIDE.md)** - Complete setup, API reference, testing
-- **[PHASE_1_COMPLETE.md](ADBMS PHASE_1.md)** - User Management implementation
-- **[PHASE_2_COMPLETE.md](ADBMS PHASE_2.md)** - Advanced Reports implementation
-- **[PHASE_4_COMPLETE.md](ADBMS PHASE_4.md)** - Monitoring & Workflow implementation
+- **[ADBMS_PHASE_1.md](ADBMS_PHASE_1.md)** - User Management implementation
+- **[ADBMS_PHASE_2.md](ADBMS_PHASE_2.md)** - Advanced Reports implementation
+- **[ADBMS_PHASE_4.md](ADBMS_PHASE_4.md)** - Monitoring & Workflow implementation
 - **[WEB_APP_IMPLEMENTATION_PLAN.md](WEB_APP_IMPLEMENTATION_PLAN.md)** - Complete implementation roadmap
 
 ---
