@@ -92,7 +92,6 @@ npm run dev
 
 TOTAL ADBMS FEATURES: 45
 
-
 ### App Features
 
 - Nuxt 3 + Vue 3 + Tailwind CSS with Glass Morphism
@@ -130,7 +129,6 @@ TOTAL ADBMS FEATURES: 45
 - **State:** Pinia
 
 ---
-
 
 ## 📁 Project Structure
 
@@ -217,7 +215,6 @@ Rosewood-Event-System/
     └── package.json               # Dependencies
 ```
 
-
 ---
 
 ## 📚 Docs
@@ -245,4 +242,3 @@ Rosewood-Event-System/
 
 ---
 See ANALYSIS.md for improvement plan.
-
