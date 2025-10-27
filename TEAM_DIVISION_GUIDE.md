@@ -1,10 +1,6 @@
 # 👥 TEAM DIVISION GUIDE - 5 Members
 
-**Project:** Rosewood Event Management System  
-**Team Size:** 5 Members  
-**Division Strategy:** Module-Based (Most Realistic & Balanced)  
 **Total ADBMS Features:** 45 (Distributed evenly across team)
-
 ---
 ## 📝 Overview
 > "We built a complete event management system that leverages 45 ADBMS features. Our approach was to centralize business logic in the database layer using stored procedures, functions, views, and triggers. This ensures data integrity, consistency, and performance. Each team member took ownership of a functional module, and together we created a professional, production-ready system."
@@ -12,15 +8,15 @@
 
 ## 👤 MEMBER 1: Authentication & Dashboard Module
 
-### 🎯 Your Responsibility:
+### Responsibility:
 **"I handled user authentication and the main dashboard with business metrics"**
 
-### 📄 Your Pages:
+### Pages:
 1. **Login Page** (`/auth/login`)
 2. **Register Page** (`/auth/register`)
 3. **Dashboard** (`/` - homepage)
 
-### 🗄️ Your ADBMS Features (8 total):
+### ADBMS Features (8 total):
 
 #### Views (3):
 1. **`v_upcoming_events`** - Shows events in next 30 days
@@ -42,13 +38,13 @@
 7. **`idx_events_date_status`** - Dashboard event filtering
 8. **`idx_payments_date`** - Monthly revenue grouping
 
-### 📡 Your Backend Files:
+### Backend Files:
 - `server/api/auth/login.post.ts`
 - `server/api/auth/register.post.ts`
 - `server/api/dashboard/stats.get.ts`
 - `server/api/upcoming-events.get.ts`
 
-### 🎤 Evaluation Talking Points:
+### Evaluation Talking Points:
 
 **1. Authentication Security:**
 > "I implemented secure authentication using JWT tokens. The `idx_users_email` index ensures fast email lookups during login. All user registrations are automatically logged to `activity_logs` for security auditing."
@@ -62,7 +58,7 @@
 **4. Why Views for Dashboard:**
 > "Views are perfect for dashboards because they cache the query execution plan. The `v_event_summary` view joins events, clients, services, and payments in one optimized query. This is much faster than doing multiple queries from the application."
 
-### 📊 Your Module Statistics:
+### Module Statistics:
 - **Pages:** 3
 - **ADBMS Features:** 8 (18% of total)
 - **Complexity:** Medium (authentication + aggregations)
@@ -72,16 +68,16 @@
 
 ## 👤 MEMBER 2: Event Management Module
 
-### 🎯 Your Responsibility:
+### Responsibility:
 **"I handled the core event management functionality - creating, viewing, and updating events"**
 
-### 📄 Your Pages:
+### Pages:
 1. **Events List** (`/events`)
 2. **Create Event** (`/events/create`)
 3. **Event Details** (`/events/{id}`)
 4. **Update Event Status** (feature on details page)
 
-### 🗄️ Your ADBMS Features (15 total):
+### ADBMS Features (15 total):
 
 #### Stored Procedures (3):
 1. **`sp_create_event(...)`** - Creates event with validation
@@ -111,13 +107,13 @@
 14. **`tr_after_event_status_update`** - Logs status changes
 15. **`tr_cascade_event_cancellation`** - Auto-cancels services when event cancelled
 
-### 📡 Your Backend Files:
+### Backend Files:
 - `server/api/events/index.get.ts` (list)
 - `server/api/events/index.post.ts` (create)
 - `server/api/events/[id].get.ts` (details)
 - `server/api/events/[id]/status.put.ts` (status update)
 
-### 🎤 Evaluation Talking Points:
+### Evaluation Talking Points:
 
 **1. Event Creation with Validation:**
 > "When creating an event, I use the stored procedure `sp_create_event`. It validates all business rules at the database level - client must be active, date can't be in the past, guest count must be positive. This ensures data integrity that application code alone can't guarantee."
@@ -131,7 +127,7 @@
 **4. Cascade Cancellation:**
 > "One of the most powerful features is the `tr_cascade_event_cancellation` trigger. When an event is cancelled, this trigger automatically cancels all associated services. This prevents orphaned data and ensures referential integrity - all without application code."
 
-### 📊 Your Module Statistics:
+### Module Statistics:
 - **Pages:** 4 (including status update feature)
 - **ADBMS Features:** 15 (33% of total)
 - **Complexity:** High (core business logic)
@@ -141,16 +137,16 @@
 
 ## 👤 MEMBER 3: Services & Payments Module
 
-### 🎯 Your Responsibility:
+### Responsibility:
 **"I handled financial transactions and service management - the revenue-generating part of the system"**
 
-### 📄 Your Pages:
+### Pages:
 1. **Add Service to Event** (feature on event details)
 2. **Process Payment** (feature on event details)
 3. **Payments List** (`/payments`)
 4. **Services Catalog** (`/services`)
 
-### 🗄️ Your ADBMS Features (12 total):
+### ADBMS Features (12 total):
 
 #### Stored Procedures (2):
 1. **`sp_add_event_service(...)`** - Adds service to event
@@ -175,13 +171,13 @@
 11. **`idx_payments_event_id`** - Fast payment lookup
 12. **`idx_event_services_event_service`** - Prevent duplicate services
 
-### 📡 Your Backend Files:
+### Backend Files:
 - `server/api/events/[id]/services.post.ts`
 - `server/api/payments/index.get.ts`
 - `server/api/payments/index.post.ts`
 - `server/api/services/index.get.ts`
 
-### 🎤 Evaluation Talking Points:
+### Evaluation Talking Points:
 
 **1. Service Management:**
 > "Adding services to events uses `sp_add_event_service` which validates that services are available and prevents adding the same service twice. The `tr_budget_overrun_warning` trigger automatically alerts managers if the total cost exceeds the client's budget."
@@ -195,7 +191,7 @@
 **4. Service Statistics:**
 > "The Services Catalog page uses `v_service_stats` view which aggregates booking data. It shows how many times each service has been booked, total quantity sold, and revenue generated. This helps managers identify popular services and optimize inventory."
 
-### 📊 Your Module Statistics:
+### Module Statistics:
 - **Pages:** 4
 - **ADBMS Features:** 12 (27% of total)
 - **Complexity:** High (financial transactions)
@@ -205,15 +201,15 @@
 
 ## 👤 MEMBER 4: Reports & Analytics Module
 
-### 🎯 Your Responsibility:
+### Responsibility:
 **"I handled business intelligence and reporting - using advanced SQL features like window functions and CTEs"**
 
-### 📄 Your Pages:
+### Pages:
 1. **Revenue Trends Report** (`/reports/revenue-trends`)
 2. **Service Profitability Report** (`/reports/service-profitability`)
 3. **Client Segments Report** (`/reports/client-segments`)
 
-### 🗄️ Your ADBMS Features (10 total):
+### ADBMS Features (10 total):
 
 #### Views (3 - All Advanced):
 1. **`v_revenue_trends`** - Uses Window Functions
@@ -242,12 +238,12 @@
 9. **`idx_users_role`** - Filter clients
 10. **`idx_payments_event_id`** - Join optimization
 
-### 📡 Your Backend Files:
+### Backend Files:
 - `server/api/reports/revenue-trends.get.ts`
 - `server/api/reports/service-profitability.get.ts`
 - `server/api/reports/client-segments.get.ts`
 
-### 🎤 Evaluation Talking Points:
+### Evaluation Talking Points:
 
 **1. Window Functions for Time-Series Analysis:**
 > "The Revenue Trends report uses advanced SQL window functions. The `LAG()` function looks back to the previous month's revenue, allowing us to calculate month-over-month growth automatically. The `SUM() OVER()` creates a cumulative revenue chart. These are features you typically see in data analytics platforms, but we implemented them in pure SQL."
@@ -261,7 +257,7 @@
 **4. Why Advanced SQL Features:**
 > "These advanced features (window functions, CTEs, CASE statements) represent the core of ADBMS capabilities. They allow complex analytics without moving data to the application layer. All calculations happen in the database, which is orders of magnitude faster. This is the power of advanced database management systems."
 
-### 📊 Your Module Statistics:
+### Module Statistics:
 - **Pages:** 3 (all reports)
 - **ADBMS Features:** 10 (22% of total - but most advanced)
 - **Complexity:** Very High (advanced SQL)
@@ -272,15 +268,15 @@
 
 ## 👤 MEMBER 5: Admin & Monitoring Module
 
-### 🎯 Your Responsibility:
+### Responsibility:
 **"I handled system administration and monitoring - user management, activity logs, and system oversight"**
 
-### 📄 Your Pages:
+### Pages:
 1. **User Management** (`/users`)
 2. **Activity Logs** (`/activity-logs`)
 3. **System Monitoring** (background activity tracking)
 
-### 🗄️ Your ADBMS Features (8 total):
+### ADBMS Features (8 total):
 
 #### Views (2):
 1. **`v_user_activity`** - Activity logs with user details
@@ -306,14 +302,14 @@ All triggers log activities to `activity_logs` table:
 14. **`idx_users_email`** - Unique constraint & fast lookup
 15. **`idx_users_search`** - Full-text search
 
-### 📡 Your Backend Files:
+### Backend Files:
 - `server/api/users/index.get.ts`
 - `server/api/users/index.post.ts`
 - `server/api/users/[id].put.ts`
 - `server/api/users/[id].delete.ts`
 - `server/api/activity-logs.get.ts`
 
-### 🎤 Evaluation Talking Points:
+### Evaluation Talking Points:
 
 **1. User Management:**
 > "User Management is admin-only functionality. I use direct table access with optimized indexes rather than views because simple CRUD operations don't benefit from view overhead. The `idx_users_role_status` composite index allows instant filtering by role and status simultaneously. The `idx_users_search` full-text index enables fast name and email searches."
@@ -327,7 +323,7 @@ All triggers log activities to `activity_logs` table:
 **4. Trigger-Based Automation:**
 > "Triggers represent the 'automation' aspect of ADBMS. Unlike stored procedures that you call explicitly, triggers fire automatically. For example, when an event is cancelled, `tr_cascade_event_cancellation` automatically cancels all services and logs the cascade operation. This ensures data consistency without relying on application code remembering to do it."
 
-### 📊 Your Module Statistics:
+### Module Statistics:
 - **Pages:** 2
 - **ADBMS Features:** 8 direct + 11 triggers (19 total - 42% by count)
 - **Complexity:** Medium-High (security & monitoring)
