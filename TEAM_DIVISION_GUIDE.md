@@ -1,6 +1,7 @@
 # 👥 TEAM DIVISION GUIDE - 5 Members
 
 **Total ADBMS Features:** 45 (Distributed evenly across team)
+
 ---
 ## 📝 Overview
 > "We built a complete event management system that leverages 45 ADBMS features. Our approach was to centralize business logic in the database layer using stored procedures, functions, views, and triggers. This ensures data integrity, consistency, and performance. Each team member took ownership of a functional module, and together we created a professional, production-ready system."
