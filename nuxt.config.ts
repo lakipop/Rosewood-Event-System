@@ -23,12 +23,12 @@ export default defineNuxtConfig({
 
   runtimeConfig: {
     // Private keys (server-only)
-    dbHost: process.env.DB_HOST,
-    dbUser: process.env.DB_USER,
-    dbPassword: process.env.DB_PASSWORD,
-    dbName: process.env.DB_NAME,
-    dbPort: process.env.DB_PORT,
-    jwtSecret: process.env.JWT_SECRET,
+    dbHost:"localhost",
+    dbUser: "root",
+    dbPassword: "1234",
+    dbName: "redwood",
+    dbPort: "3306",
+    jwtSecret:"JWT_SECRET",
 
     // Public keys (exposed to client)
     public: {
