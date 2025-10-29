@@ -1,47 +1,10 @@
 # 📖 Rosewood Event System - Complete Project Guide
-
-**Last Updated:** October 11, 2025  
-**Status:** ✅ 100% COMPLETE - Ready for Submission
-
----
-
-## 🎯 Recent Updates
-
-### ✅ Documentation Cleanup & Navigation Fix (Latest)
-- **Consolidated Documentation**: Merged 17+ scattered markdown files into this single comprehensive guide
-- **Simplified README**: Reduced from 245 lines to ~100 lines with essential info only
-- **Created Payments Page**: Added complete payments management page (`pages/payments/index.vue`)
-- **Fixed Navigation**: All sidebar navigation links working correctly
-  - ✅ Dashboard → `/` (index page)
-  - ✅ Events → `/events`
-  - ✅ Services → `/services` (already existed, now confirmed working)
-  - ✅ Payments → `/payments` (newly created)
-
----
-
-## 📋 Table of Contents
-
-1. [Project Overview](#project-overview)
-2. [Current Implementation](#current-implementation)
-3. [Database Features (80%)](#database-features)
-4. [Application Features (20%)](#application-features)
-5. [API Reference](#api-reference)
-6. [Setup & Installation](#setup--installation)
-7. [Testing Guide](#testing-guide)
-8. [Demo Instructions](#demo-instructions)
-9. [Future Work](#future-work)
-10. [Project Structure](#project-structure)
-
 ---
 
 ## 🎯 Project Overview
 
 ### Purpose
 ADBMS (Advanced Database Management Systems) course project demonstrating mastery of advanced MySQL features in a real-world application.
-
-### Requirements Compliance
-- **Database Features (80%):** ✅ COMPLETE - Exceeded all requirements
-- **Application (20%):** ✅ 95% COMPLETE - Fully functional
 
 ### Technology Stack
 - **Frontend:** Nuxt 3.4.1, Vue 3 (Composition API), Tailwind CSS
@@ -60,26 +23,41 @@ ADBMS (Advanced Database Management Systems) course project demonstrating master
 - `/auth/login` - Login page
 - `/auth/register` - Registration page
 - `/events` - Events listing with filters
+- `/events/create` - Create new event
 - `/events/[id]` - Event details page
-- `/services` - Services catalog (WORKING ✅)
+- `/services` - Services catalog
+- `/payments` - Payments listing
+- `/users` - User management (admin)
+- `/activity-logs` - Activity logs viewer
+- `/reports/revenue-trends` - Revenue analysis
+- `/reports/service-profitability` - Service profit report
+- `/reports/client-segments` - Client segmentation
 
-#### ✅ Backend APIs (20+ endpoints)
+#### ✅ Backend APIs (18 endpoints)
 ```
 Auth:     POST /api/auth/login, /api/auth/register
 Events:   GET, POST, PUT, DELETE /api/events
-          GET /api/events/:id/services
-          POST /api/events/:id/services
+          GET /api/events/:id
+          GET, POST /api/events/:id/services
           GET /api/events/:id/payments
-Services: GET, POST, PUT, DELETE /api/services (PUBLIC ✅)
+          PUT /api/events/:id/status
+Services: GET, POST, PUT, DELETE /api/services
 Payments: GET, POST, PUT, DELETE /api/payments
+Users:    GET, POST, PUT, DELETE /api/users
+Reports:  GET /api/reports/revenue-trends
+          GET /api/reports/service-profitability
+          GET /api/reports/client-segments
+Dashboard: GET /api/dashboard/stats
+Logs:     GET /api/activity-logs
+Alerts:   GET /api/upcoming-events
 ```
 
 #### ✅ Database (Complete)
 - 7 tables with relationships
-- 5 stored procedures
-- 7 user-defined functions
-- 7 database views
-- 8 triggers
+- 8 stored procedures
+- 11 user-defined functions (includes 3 advanced)
+- 15 database views (includes 3 advanced)
+- 11 triggers (automatic logging & automation)
 - 30+ indexes
 - 100+ sample records
 
@@ -107,7 +85,7 @@ activity_logs      -- Audit trail
 
 ---
 
-### 2. Stored Procedures (5)
+### 2. Stored Procedures (8)
 
 #### `sp_create_event`
 ```sql
@@ -159,9 +137,30 @@ CALL sp_get_event_summary(event_id);
 - Includes services, payments, client details
 - Multi-table JOIN
 
+#### `sp_reconcile_payments`
+```sql
+CALL sp_reconcile_payments(event_id);
+```
+- Reconciles payment records
+- Validates payment totals against event cost
+
+#### `sp_clone_event`
+```sql
+CALL sp_clone_event(event_id, new_date, @new_event_id);
+```
+- Duplicates event with services
+- Useful for recurring events
+
+#### `sp_generate_monthly_report`
+```sql
+CALL sp_generate_monthly_report(year, month);
+```
+- Generates monthly financial summary
+- Revenue, expenses, profit calculations
+
 ---
 
-### 3. User-Defined Functions (7)
+### 3. User-Defined Functions (11)
 
 ```sql
 fn_calculate_event_cost(event_id)     → DECIMAL  -- Sum all service costs
@@ -171,6 +170,10 @@ fn_is_event_paid(event_id)            → TINYINT  -- Boolean check
 fn_days_until_event(event_id)         → INT      -- Days remaining
 fn_format_phone(phone)                → VARCHAR  -- Format phone number
 fn_service_unit_total(qty, price)     → DECIMAL  -- Qty × price
+fn_event_profitability(event_id)      → DECIMAL  -- Profit margin %
+fn_calculate_client_ltv(client_id)    → DECIMAL  -- Customer lifetime value
+fn_payment_status(event_id)           → VARCHAR  -- Status text
+fn_forecast_monthly_revenue(month)    → DECIMAL  -- Revenue forecasting
 ```
 
 **Usage Examples:**
@@ -188,7 +191,7 @@ FROM events WHERE event_id = 1;
 
 ---
 
-### 4. Database Views (7)
+### 4. Database Views (15)
 
 #### `v_event_summary` - Complete event overview
 ```sql
@@ -232,54 +235,97 @@ SELECT * FROM v_monthly_revenue;
 -- DATE_FORMAT and GROUP BY month
 ```
 
----
-
-### 5. Triggers (8)
-
-**AFTER INSERT:**
-- `tr_after_payment` - Logs payment creation
-- `tr_after_event_service_add` - Recalculates event cost
-- `tr_after_event_create` - Logs event creation
-- `tr_after_service_create` - Logs service creation
-
-**AFTER UPDATE:**
-- `tr_after_event_status_update` - Logs status changes
-
-**BEFORE DELETE:**
-- `tr_before_event_delete` - Prevents deletion if payments exist
-- `tr_before_user_delete` - Prevents deletion if user has events
-
-**AFTER DELETE:**
-- `tr_after_event_service_delete` - Recalculates cost
-
----
-
-### 6. Indexes (30+)
-
+#### `v_service_profitability` - Service profit analysis (Advanced)
 ```sql
--- Primary Keys (7)
-PRIMARY KEY on all tables
+SELECT * FROM v_service_profitability;
+-- Uses CTEs for cost/profit calculations
+```
 
--- Foreign Keys (10+)
-idx_events_client_id, idx_events_event_type_id
+#### `v_revenue_trends` - Revenue trends (Advanced)
+```sql
+SELECT * FROM v_revenue_trends;
+-- Uses window functions (LAG, SUM OVER)
+```
+
+#### `v_client_segments` - Client segmentation (Advanced)
+```sql
+SELECT * FROM v_client_segments;
+-- Uses CASE statements for VIP/Premium/Regular classification
+```
+
+**Plus 5 more supporting views:** v_event_pipeline, v_category_performance, v_payment_behavior, v_upcoming_events_risk, v_staff_performance
+
+---
+
+### 5. Triggers (11)
+
+**Activity Logging:**
+- `tr_after_payment_insert` - Logs payment creation
+- `tr_after_payment_update` - Logs payment changes
+- `tr_after_event_insert` - Logs event creation
+- `tr_after_event_status_update` - Logs status changes
+- `tr_after_service_add` - Logs service additions
+
+**Validation:**
+- `tr_before_payment_insert` - Validates payment amount > 0
+- `tr_before_payment_insert_date` - Sets default payment date
+
+**Automation:**
+- `tr_update_event_status_on_payment` - Auto-confirms when fully paid
+- `tr_cascade_event_cancellation` - Cancels services when event cancelled
+- `tr_generate_payment_reference` - Auto-generates reference numbers
+- `tr_budget_overrun_warning` - Logs warning if budget exceeded
+
+---
+
+### 6. Indexes (33 + 7 PKs = 40 total)
+
+**Regular Indexes (30):**
+```sql
+-- Users (4)
+idx_users_email, idx_users_role, idx_users_status, idx_users_role_status
+
+-- Events (6)
+idx_events_client_id, idx_events_event_type_id, idx_events_event_date
+idx_events_status, idx_events_date_status, idx_events_client_status
+
+-- Event Types (1)
+idx_event_types_is_active
+
+-- Services (3)
+idx_services_category, idx_services_is_available, idx_services_category_available
+
+-- Event Services (4)
 idx_event_services_event_id, idx_event_services_service_id
-idx_payments_event_id, idx_activity_logs_user_id
+idx_event_services_status, idx_event_services_event_status
 
--- Status & Date (8)
-idx_events_status, idx_events_event_date
-idx_users_status, idx_payments_payment_date
+-- Payments (7)
+idx_payments_event_id, idx_payments_payment_date, idx_payments_status
+idx_payments_event_status, idx_payments_date_status
+idx_payments_payment_method, idx_payments_payment_type
 
--- Composite (5)
-idx_events_client_status (client_id, status)
-idx_events_date_status (event_date, status)
+-- Activity Logs (5)
+idx_activity_logs_user_id, idx_activity_logs_table_name
+idx_activity_logs_created_at, idx_activity_logs_action_type
+idx_activity_logs_user_date
+```
 
--- Full-Text (1)
+**Full-Text Indexes (3):**
+```sql
+idx_events_search FULLTEXT(event_name, venue)
+idx_users_search FULLTEXT(full_name, email)
 idx_services_search FULLTEXT(service_name, description)
+```
+
+**Primary Keys (7):**
+```sql
+user_id, event_type_id, service_id, event_id
+event_service_id, payment_id, log_id
 ```
 
 ---
 
-## 💻 Application Features (20% - 95% COMPLETE)
+## 💻 Application Features
 
 ### Authentication & Authorization ✅
 - JWT token-based authentication
@@ -537,141 +583,6 @@ Staff:
 
 ---
 
-## 🧪 Testing Guide
-
-### Testing Database Features
-
-#### 1. Test Stored Procedures
-```sql
--- Create event
-CALL sp_create_event('Test Event', 1, 1, '2025-12-01', 'Hotel', 100, 500000, NULL, @event_id);
-SELECT @event_id;
-
--- Process payment
-CALL sp_process_payment(1, 100000, 'cash', NOW(), 'Test payment', @payment_id);
-SELECT @payment_id;
-
--- Get event summary
-CALL sp_get_event_summary(1);
-```
-
-#### 2. Test Functions
-```sql
--- Calculate balance
-SELECT 
-  event_id,
-  event_name,
-  fn_calculate_event_cost(event_id) AS total_cost,
-  fn_calculate_total_paid(event_id) AS paid,
-  fn_calculate_balance(event_id) AS balance,
-  fn_is_event_paid(event_id) AS is_paid
-FROM events 
-WHERE event_id = 1;
-```
-
-#### 3. Test Views
-```sql
-SELECT * FROM v_event_summary;
-SELECT * FROM v_active_events;
-SELECT * FROM v_payment_summary;
-```
-
-#### 4. Test Triggers
-```sql
--- Insert payment and check log
-INSERT INTO payments (event_id, amount, payment_method, payment_date)
-VALUES (1, 50000, 'cash', NOW());
-
--- Check trigger logged it
-SELECT * FROM activity_logs ORDER BY created_at DESC LIMIT 5;
-```
-
-### Testing APIs
-
-#### Browser Console Test
-```javascript
-// Get token after login
-const token = localStorage.getItem('auth_token');
-
-// Test get events
-fetch('/api/events', {
-  headers: { 'Authorization': `Bearer ${token}` }
-}).then(r => r.json()).then(console.log);
-
-// Test record payment
-fetch('/api/payments', {
-  method: 'POST',
-  headers: {
-    'Authorization': `Bearer ${token}`,
-    'Content-Type': 'application/json'
-  },
-  body: JSON.stringify({
-    event_id: 1,
-    amount: 100000,
-    payment_method: 'cash'
-  })
-}).then(r => r.json()).then(console.log);
-```
-
----
-
-## 🎬 Demo Instructions
-
-### 5-Minute Demo Script
-
-**1. Login (30 sec)**
-- Go to http://localhost:3000
-- Login with: lakindu02@gmail.com / Test123
-- Show dashboard with event statistics
-
-**2. Browse Features (1 min)**
-- Click "Services" in sidebar
-- Show services catalog (public access)
-- Filter by category
-
-**3. View Event (1 min)**
-- Go back to dashboard
-- Click on an event card
-- Show event details, services, payments
-
-**4. Database Features (2.5 min)**
-- Open MySQL Workbench
-- Run: `CALL sp_get_event_summary(1);`
-- Run: `SELECT * FROM v_event_summary;`
-- Run: `SELECT fn_calculate_balance(1);`
-- Show activity_logs table (trigger results)
-
-**5. Wrap Up (30 sec)**
-- Mention documentation
-- Highlight 80% database focus
-
----
-
-## 🔮 Future Work (Not Required for ADBMS)
-
-### Optional Enhancements (5%)
-
-1. **Payment Management Page** (2%)
-   - Dedicated payments list page
-   - Filter by event, method, date
-   - Export to CSV
-
-2. **Reports & Analytics** (2%)
-   - Use existing database views
-   - Charts and graphs
-   - Monthly revenue report
-   - Service usage report
-
-3. **User Management** (1%)
-   - Admin page to manage users
-   - GET /api/users endpoint
-   - Activate/deactivate users
-
-### Why Not Implemented?
-- **ADBMS focuses on database (80%)** - Already complete
-- **Application is functional** - 95% complete
-- **Time vs. Grade Impact** - Low priority
-
 ---
 
 ## 📁 Project Structure
@@ -749,8 +660,6 @@ Rosewood-Event-System/
 ---
 
 ## 📊 Implementation Status
-
-### ✅ Complete (95%)
 
 | Feature | Status | Details |
 |---------|--------|---------|

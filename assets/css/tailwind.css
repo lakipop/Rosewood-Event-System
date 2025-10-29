@@ -41,7 +41,10 @@ html {
   background: rgb(142, 9, 38);
 }
 
-* {
-  scrollbar-width: thin;
-  scrollbar-color: rgb(186, 23, 50) transparent;
+@supports (scrollbar-width: thin) {
+  * {
+    /* Firefox-only scrollbar settings */
+    scrollbar-width: thin;
+    scrollbar-color: rgb(186, 23, 50) transparent;
+  }
 }
