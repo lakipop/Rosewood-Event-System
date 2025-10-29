@@ -63,17 +63,17 @@
                 Event Type *
               </label>
               <select 
-                v-model="formData.event_type"
+                v-model.number="formData.event_type"
                 required
                 class="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-lg text-zinc-100 focus:ring-2 focus:ring-rose-500 focus:outline-none"
               >
                 <option value="">Select Event Type</option>
-                <option value="wedding">Wedding</option>
-                <option value="birthday">Birthday</option>
-                <option value="corporate">Corporate</option>
-                <option value="anniversary">Anniversary</option>
-                <option value="party">Party</option>
-                <option value="other">Other</option>
+                <option :value="1">Wedding</option>
+                <option :value="2">Birthday</option>
+                <option :value="3">Corporate</option>
+                <option :value="4">Anniversary</option>
+                <option :value="5">Party</option>
+                <option :value="6">Other</option>
               </select>
             </div>
 
@@ -225,15 +225,15 @@ const createEvent = async () => {
     successMessage.value = '';
 
     const payload = {
-      event_name: formData.value.event_name,
-      event_type: formData.value.event_type,
-      event_date: formData.value.event_date,
-      event_time: formData.value.event_time || null,
+      eventName: formData.value.event_name,
+      eventTypeId: formData.value.event_type,
+      eventDate: formData.value.event_date,
+      eventTime: formData.value.event_time || null,
       venue: formData.value.venue,
-      guest_count: formData.value.guest_count || null,
+      guestCount: formData.value.guest_count || null,
       budget: formData.value.budget || null,
-      notes: formData.value.notes || null,
-      client_id: formData.value.client_id || null
+      specialNotes: formData.value.notes || null,
+      clientId: formData.value.client_id || null
     };
 
     const response = await $fetch<any>('/api/events', {
