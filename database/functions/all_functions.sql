@@ -4,7 +4,7 @@
 -- Manual Execution: Open in MySQL Workbench and execute
 -- ==========================================
 
-USE `rosewood-events-db`;
+USE `rosewood_events_db`;
 
 -- ==========================================
 -- BASIC FUNCTIONS (7)

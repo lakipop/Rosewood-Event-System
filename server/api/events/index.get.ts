@@ -12,6 +12,7 @@ export default defineEventHandler(async (event) => {
         fn_payment_status(vs.event_id) as payment_status,
         fn_days_until_event(vs.event_id) as days_until_event,
         e.client_id,
+        e.event_type_id,
         e.created_at
       FROM v_event_summary vs
       JOIN events e ON vs.event_id = e.event_id
