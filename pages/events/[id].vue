@@ -112,20 +112,20 @@
                   <!-- Total Cost -->
                   <div>
                     <p class="text-sm text-zinc-400 mb-1">Total Cost</p>
-                    <p class="text-2xl font-bold text-zinc-100">₱{{ formatCurrency(financials?.total_cost || 0) }}</p>
+                    <p class="text-2xl font-bold text-zinc-100">Rs:{{ formatCurrency(financials?.total_cost || 0) }}</p>
                   </div>
 
                   <!-- Total Paid -->
                   <div>
                     <p class="text-sm text-zinc-400 mb-1">Total Paid</p>
-                    <p class="text-2xl font-bold text-green-400">₱{{ formatCurrency(financials?.total_paid || 0) }}</p>
+                    <p class="text-2xl font-bold text-green-400">Rs:{{ formatCurrency(financials?.total_paid || 0) }}</p>
                   </div>
 
                   <!-- Balance -->
                   <div class="pt-4 border-t border-zinc-800">
                     <p class="text-sm text-zinc-400 mb-1">Balance</p>
                     <p :class="(financials?.balance || 0) > 0 ? 'text-rose-400' : 'text-green-400'" class="text-2xl font-bold">
-                      ₱{{ formatCurrency(financials?.balance || 0) }}
+                      Rs:{{ formatCurrency(financials?.balance || 0) }}
                     </p>
                   </div>
 
@@ -159,6 +159,86 @@
                   >
                     💳 Record Payment
                   </button>
+                </div>
+              </div>
+            </div>
+
+            <!-- Services Section -->
+            <div class="bg-zinc-900 rounded-lg border border-zinc-800 p-6 mb-8">
+              <div class="flex justify-between items-center mb-6">
+                <h2 class="text-xl font-bold text-zinc-100 flex items-center gap-2">
+                  🛎️ Event Services
+                </h2>
+                <span class="text-sm text-zinc-400">{{ services.length }} service{{ services.length !== 1 ? 's' : '' }}</span>
+              </div>
+
+              <div v-if="services.length === 0" class="text-center py-8">
+                <p class="text-zinc-400">No services added to this event</p>
+              </div>
+
+              <div v-else class="space-y-4">
+                <div 
+                  v-for="service in services" 
+                  :key="service.event_service_id"
+                  class="bg-zinc-800/50 rounded-lg p-4 border border-zinc-700/50"
+                >
+                  <div class="flex justify-between items-start">
+                    <div class="flex-1">
+                      <div class="flex items-center gap-3 mb-2">
+                        <h3 class="text-lg font-semibold text-zinc-100">{{ service.service_name }}</h3>
+                        <span 
+                          :class="{
+                            'bg-blue-900/30 text-blue-400': service.category === 'catering',
+                            'bg-purple-900/30 text-purple-400': service.category === 'decoration',
+                            'bg-green-900/30 text-green-400': service.category === 'entertainment',
+                            'bg-yellow-900/30 text-yellow-400': service.category === 'photography',
+                            'bg-pink-900/30 text-pink-400': service.category === 'venue',
+                            'bg-zinc-700 text-zinc-300': !['catering', 'decoration', 'entertainment', 'photography', 'venue'].includes(service.category)
+                          }"
+                          class="px-2 py-1 rounded-full text-xs font-medium capitalize"
+                        >
+                          {{ service.category }}
+                        </span>
+                      </div>
+                      
+                      <div class="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                        <div>
+                          <p class="text-zinc-400 mb-1">Quantity</p>
+                          <p class="text-zinc-200 font-medium">{{ service.quantity }} {{ service.unit_type || 'units' }}</p>
+                        </div>
+                        
+                        <div>
+                          <p class="text-zinc-400 mb-1">Unit Price</p>
+                          <p class="text-zinc-200 font-medium">Rs:{{ formatCurrency(service.agreed_price) }}</p>
+                        </div>
+                        
+                        <div>
+                          <p class="text-zinc-400 mb-1">Subtotal</p>
+                          <p class="text-green-400 font-bold">Rs:{{ formatCurrency(service.subtotal || (service.quantity * service.agreed_price)) }}</p>
+                        </div>
+                        
+                        <div>
+                          <p class="text-zinc-400 mb-1">Added</p>
+                          <p class="text-zinc-200">{{ formatDate(service.added_at) }}</p>
+                        </div>
+                      </div>
+
+                      <div v-if="service.special_instructions" class="mt-3 pt-3 border-t border-zinc-700">
+                        <p class="text-zinc-400 text-sm mb-1">Special Instructions</p>
+                        <p class="text-zinc-300 text-sm">{{ service.special_instructions }}</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Services Total -->
+                <div class="border-t border-zinc-700 pt-4 mt-6">
+                  <div class="flex justify-between items-center">
+                    <span class="text-lg font-semibold text-zinc-300">Total Services Cost</span>
+                    <span class="text-2xl font-bold text-green-400">
+                      Rs:{{ formatCurrency(calculateServicesTotal()) }}
+                    </span>
+                  </div>
                 </div>
               </div>
             </div>
@@ -316,12 +396,16 @@ const event = ref<any>(null);
 const payments = ref<any[]>([]);
 const services = ref<any[]>([]);
 const activities = ref<any[]>([]);
-const financials = ref<any>(null); // Add this line
 const loading = ref(true);
 const loadingPayments = ref(true);
 const showPaymentModal = ref(false);
 const savingPayment = ref(false);
-const selectedStatus = ref(''); // For status update dropdown
+const selectedStatus = ref('');
+
+// Create a computed property for financials
+const financials = computed(() => {
+  return event.value?.financials || {};
+});
 
 const paymentForm = ref({
   amount: null as number | null,
@@ -342,11 +426,13 @@ const fetchEvent = async () => {
       }
     });
     
+    console.log('API Response:', response); // Debug log
+    console.log('Event financials:', response.event?.financials); // Debug log
+    
     event.value = response.event || response.data;
     payments.value = response.payments || [];
     services.value = response.services || [];
     activities.value = response.activities || [];
-    financials.value = response.financials || {}; // Add this line
   } catch (error: any) {
     console.error('Failed to fetch event:', error);
     if (error.statusCode === 401) {
@@ -489,6 +575,12 @@ const getStatusColor = (status: string) => {
     'cancelled': 'bg-red-900/30 text-red-400'
   };
   return colors[status] || 'bg-zinc-700 text-zinc-400';
+};
+
+const calculateServicesTotal = () => {
+  return services.value.reduce((total, service) => {
+    return total + (service.subtotal || (service.quantity * service.agreed_price));
+  }, 0);
 };
 
 onMounted(() => {
