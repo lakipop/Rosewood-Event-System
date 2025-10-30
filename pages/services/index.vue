@@ -47,6 +47,18 @@
             </select>
           </div>
 
+          <!-- Status Filter -->
+          <div class="mb-6">
+            <select 
+              v-model="selectedStatus"
+              class="px-4 py-2 bg-zinc-900 text-white border border-zinc-700 rounded-lg"
+            >
+              <option value="">All Statuses</option>
+              <option value="Available">Available</option>
+              <option value="Unavailable">Unavailable</option>
+            </select>
+          </div>
+
           <!-- Services Grid -->
           <div v-if="loading" class="text-center py-12">
             <div class="text-zinc-400">Loading services...</div>
@@ -269,6 +281,21 @@
             />
           </div>
 
+          <!-- Add State to Event Service -->
+          <div>
+            <label class="block text-sm font-medium text-zinc-300 mb-2">State *</label>
+            <select 
+              v-model="eventForm.state"
+              required
+              class="w-full px-4 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-white"
+            >
+              <option value="">Select State</option>
+              <option value="Pending">Pending</option>
+              <option value="Confirmed">Confirmed</option>
+              <option value="Completed">Completed</option>
+            </select>
+          </div>
+
           <div class="flex justify-end gap-3">
             <button 
               type="button"
@@ -317,12 +344,26 @@ const eventForm = ref({
   event_id: '',
   quantity: 1,
   agreed_price: 0,
-  service_id: '', // Added service_id to the eventForm type
+  service_id: '',
+  state: '', // Added state to the eventForm
 });
 
+const selectedStatus = ref('');
+
 const filteredServices = computed(() => {
-  if (!selectedCategory.value) return services.value;
-  return services.value.filter(s => s.category === selectedCategory.value);
+  let servicesList = services.value;
+
+  if (selectedCategory.value) {
+    servicesList = servicesList.filter(s => s.category === selectedCategory.value);
+  }
+
+  if (selectedStatus.value) {
+    servicesList = servicesList.filter(s =>
+      selectedStatus.value === 'Available' ? s.is_available : !s.is_available
+    );
+  }
+
+  return servicesList;
 });
 
 const formatNumber = (num: number) => {
@@ -424,7 +465,7 @@ const openAddToEventModal = (service: any) => {
 
 const closeAddToEventModal = () => {
   showAddToEventModal.value = false;
-  eventForm.value = { event_id: '', quantity: 1, agreed_price: 0, service_id: '' }; // Added service_id to the reset logic
+  eventForm.value = { event_id: '', quantity: 1, agreed_price: 0, service_id: '', state: '' }; // Added service_id to the reset logic
 };
 
 const addServiceToEvent = async () => {
@@ -440,6 +481,7 @@ const addServiceToEvent = async () => {
           service_id: eventForm.value.service_id,
           quantity: eventForm.value.quantity,
           agreed_price: eventForm.value.agreed_price,
+          state: eventForm.value.state, // Include state in the request body
         },
       }
     );
