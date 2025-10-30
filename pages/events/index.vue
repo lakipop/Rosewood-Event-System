@@ -386,14 +386,18 @@
 
         <div class="space-y-4">
           <div>
-            <label class="block text-sm font-medium text-zinc-300 mb-2">Service Name *</label>
-            <input 
-              v-model="newService.service_name"
-              type="text"
+            <label class="block text-sm font-medium text-zinc-300 mb-2">Select Service *</label>
+            <select 
+              v-model.number="newService.service_id"
               required
-              class="w-full px-4 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-zinc-100 focus:ring-2 focus:ring-rose-500 focus:outline-none"
-              placeholder="Catering, Photography, etc."
-            />
+              :disabled="loadingServices"
+              class="w-full px-4 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-zinc-100 focus:ring-2 focus:ring-rose-500 focus:outline-none disabled:opacity-50"
+            >
+              <option :value="null">{{ loadingServices ? 'Loading services...' : 'Select a service' }}</option>
+              <option v-for="service in availableServices" :key="service.service_id" :value="service.service_id">
+                {{ service.service_name }} ({{ service.category }})
+              </option>
+            </select>
           </div>
 
           <div class="grid grid-cols-2 gap-4">
@@ -464,6 +468,8 @@ const searchQuery = ref('');
 const filterStartDate = ref('');
 const filterEndDate = ref('');
 const showAddToEventModal = ref(false);
+const availableServices = ref<any[]>([]);
+const loadingServices = ref(false);
 
 const formData = ref({
   event_id: null as number | null,
@@ -479,12 +485,29 @@ const formData = ref({
 });
 
 const newService = ref({
-  service_name: '',
+  service_id: null as number | null,
   quantity: 1,
   agreed_price: 0
 });
 
 const eventServices = ref<any[]>([]);
+
+// Fetch available services
+const fetchServices = async () => {
+  try {
+    loadingServices.value = true;
+    const response = await $fetch<any>('/api/services', {
+      headers: {
+        Authorization: `Bearer ${authStore.token}`
+      }
+    });
+    availableServices.value = response.services || [];
+  } catch (error: any) {
+    console.error('Failed to fetch services:', error);
+  } finally {
+    loadingServices.value = false;
+  }
+};
 
 const filteredEvents = computed(() => {
   let result = events.value;
@@ -664,11 +687,50 @@ const openAddToEventModal = () => {
 
 const closeAddToEventModal = () => {
   showAddToEventModal.value = false;
+  newService.value = { service_id: null, quantity: 1, agreed_price: 0 };
 };
 
-const addServiceToEvent = (service: any) => {
-  eventServices.value.push(service);
-  closeAddToEventModal();
+const addServiceToEvent = async (service: any) => {
+  try {
+    const selectedService = availableServices.value.find(s => s.service_id === service.service_id);
+    
+    if (!selectedService) {
+      alert('Please select a valid service');
+      return;
+    }
+
+    // For edit event, we need to save to the database immediately via API
+    const response = await $fetch<{ success: boolean; message: string }>(
+      `/api/events/${formData.value.event_id}/services`,
+      {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${authStore.token}`,
+        },
+        body: {
+          service_id: service.service_id,
+          quantity: service.quantity,
+          agreed_price: service.agreed_price,
+        },
+      }
+    );
+    
+    // Add to the local array for UI feedback
+    const serviceToAdd = {
+      service_id: service.service_id,
+      service_name: selectedService.service_name,
+      quantity: service.quantity,
+      agreed_price: service.agreed_price
+    };
+    eventServices.value.push(serviceToAdd);
+    closeAddToEventModal();
+    
+    // Re-fetch events to get updated data
+    await fetchEvents();
+  } catch (error: any) {
+    console.error('Failed to add service to event:', error);
+    alert(error.data?.message || 'Failed to add service to event.');
+  }
 };
 
 const removeService = (index: number) => {
@@ -685,6 +747,7 @@ onMounted(() => {
     navigateTo('/auth/login');
   } else {
     fetchEvents();
+    fetchServices();
   }
 });
 </script>

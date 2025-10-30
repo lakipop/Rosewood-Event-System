@@ -222,14 +222,18 @@
 
               <div class="space-y-4">
                 <div>
-                  <label class="block text-sm font-medium text-zinc-300 mb-2">Service Name *</label>
-                  <input 
-                    v-model="newService.service_name"
-                    type="text"
+                  <label class="block text-sm font-medium text-zinc-300 mb-2">Select Service *</label>
+                  <select 
+                    v-model.number="newService.service_id"
                     required
-                    class="w-full px-4 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-zinc-100 focus:ring-2 focus:ring-rose-500 focus:outline-none"
-                    placeholder="Catering, Photography, etc."
-                  />
+                    :disabled="loadingServices"
+                    class="w-full px-4 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-zinc-100 focus:ring-2 focus:ring-rose-500 focus:outline-none disabled:opacity-50"
+                  >
+                    <option :value="null">{{ loadingServices ? 'Loading services...' : 'Select a service' }}</option>
+                    <option v-for="service in availableServices" :key="service.service_id" :value="service.service_id">
+                      {{ service.service_name }} ({{ service.category }})
+                    </option>
+                  </select>
                 </div>
 
                 <div class="grid grid-cols-2 gap-4">
@@ -299,6 +303,8 @@ const saving = ref(false);
 const successMessage = ref('');
 const errorMessage = ref('');
 const showAddToEventModal = ref(false); // Defined the missing variable
+const availableServices = ref<any[]>([]);
+const loadingServices = ref(false);
 
 const today = computed(() => {
   return new Date().toISOString().split('T')[0];
@@ -318,10 +324,27 @@ const formData = ref({
 
 const addedServices = ref<any[]>([]);
 const newService = ref({
-  service_name: '',
+  service_id: null as number | null,
   quantity: 1,
   agreed_price: 0
 });
+
+// Fetch available services
+const fetchServices = async () => {
+  try {
+    loadingServices.value = true;
+    const response = await $fetch<any>('/api/services', {
+      headers: {
+        Authorization: `Bearer ${authStore.token}`
+      }
+    });
+    availableServices.value = response.services || [];
+  } catch (error: any) {
+    console.error('Failed to fetch services:', error);
+  } finally {
+    loadingServices.value = false;
+  }
+};
 
 const createEvent = async () => {
   try {
@@ -380,18 +403,33 @@ const openAddToEventModal = () => {
 const closeAddToEventModal = () => {
   showAddToEventModal.value = false;
   // reset the temporary new service form
-  newService.value = { service_name: '', quantity: 1, agreed_price: 0 };
+  newService.value = { service_id: null, quantity: 1, agreed_price: 0 };
 };
 
-const addServiceToEvent = (service: any) => {
-  // ensure we push a plain object (not a ref)
+const addServiceToEvent = async (service: any) => {
+  // For create event, we don't have an event_id yet
+  // So we just add to the temporary array and save them after event creation
+  const selectedService = availableServices.value.find(s => s.service_id === service.service_id);
+  
+  if (!selectedService) {
+    errorMessage.value = 'Please select a valid service';
+    return;
+  }
+
   const svc = {
-    service_name: service.service_name,
+    service_id: service.service_id,
+    service_name: selectedService.service_name,
     quantity: service.quantity,
     agreed_price: service.agreed_price
   };
   addedServices.value.push(svc);
   closeAddToEventModal();
+  
+  // Show success message
+  successMessage.value = 'Service added! It will be saved when you create the event.';
+  setTimeout(() => {
+    successMessage.value = '';
+  }, 3000);
 };
 
 const removeService = (index: number) => {
@@ -401,6 +439,8 @@ const removeService = (index: number) => {
 onMounted(() => {
   if (!authStore.user) {
     navigateTo('/auth/login');
+  } else {
+    fetchServices();
   }
 });
 </script>

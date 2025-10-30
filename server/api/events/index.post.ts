@@ -13,7 +13,8 @@ export default defineEventHandler(async (event) => {
       venue,
       guestCount,
       budget,
-      specialNotes
+      specialNotes,
+      services = []
     } = body
 
     // Validation
@@ -63,6 +64,24 @@ export default defineEventHandler(async (event) => {
         'UPDATE events SET special_notes = ? WHERE event_id = ?',
         [specialNotes, eventId]
       )
+    }
+
+    // Add services if provided
+    if (services && services.length > 0) {
+      for (const service of services) {
+        const { service_id, quantity, agreed_price } = service
+        if (service_id && quantity && agreed_price) {
+          try {
+            await query(
+              'CALL sp_add_event_service(?, ?, ?, ?, @success, @message)',
+              [eventId, service_id, quantity, agreed_price]
+            )
+          } catch (serviceError: any) {
+            console.warn(`Failed to add service ${service_id} to event:`, serviceError)
+            // Continue adding other services even if one fails
+          }
+        }
+      }
     }
 
     // Fetch the created event using the view
