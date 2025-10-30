@@ -112,20 +112,20 @@
                   <!-- Total Cost -->
                   <div>
                     <p class="text-sm text-zinc-400 mb-1">Total Cost</p>
-                    <p class="text-2xl font-bold text-zinc-100">₱{{ formatCurrency(financials?.total_cost || 0) }}</p>
+                    <p class="text-2xl font-bold text-zinc-100">Rs:{{ formatCurrency(financials?.total_cost || 0) }}</p>
                   </div>
 
                   <!-- Total Paid -->
                   <div>
                     <p class="text-sm text-zinc-400 mb-1">Total Paid</p>
-                    <p class="text-2xl font-bold text-green-400">₱{{ formatCurrency(financials?.total_paid || 0) }}</p>
+                    <p class="text-2xl font-bold text-green-400">Rs:{{ formatCurrency(financials?.total_paid || 0) }}</p>
                   </div>
 
                   <!-- Balance -->
                   <div class="pt-4 border-t border-zinc-800">
                     <p class="text-sm text-zinc-400 mb-1">Balance</p>
                     <p :class="(financials?.balance || 0) > 0 ? 'text-rose-400' : 'text-green-400'" class="text-2xl font-bold">
-                      ₱{{ formatCurrency(financials?.balance || 0) }}
+                      Rs:{{ formatCurrency(financials?.balance || 0) }}
                     </p>
                   </div>
 
@@ -209,12 +209,12 @@
                         
                         <div>
                           <p class="text-zinc-400 mb-1">Unit Price</p>
-                          <p class="text-zinc-200 font-medium">₱{{ formatCurrency(service.agreed_price) }}</p>
+                          <p class="text-zinc-200 font-medium">Rs:{{ formatCurrency(service.agreed_price) }}</p>
                         </div>
                         
                         <div>
                           <p class="text-zinc-400 mb-1">Subtotal</p>
-                          <p class="text-green-400 font-bold">₱{{ formatCurrency(service.subtotal || (service.quantity * service.agreed_price)) }}</p>
+                          <p class="text-green-400 font-bold">Rs:{{ formatCurrency(service.subtotal || (service.quantity * service.agreed_price)) }}</p>
                         </div>
                         
                         <div>
@@ -236,7 +236,7 @@
                   <div class="flex justify-between items-center">
                     <span class="text-lg font-semibold text-zinc-300">Total Services Cost</span>
                     <span class="text-2xl font-bold text-green-400">
-                      ₱{{ formatCurrency(calculateServicesTotal()) }}
+                      Rs:{{ formatCurrency(calculateServicesTotal()) }}
                     </span>
                   </div>
                 </div>
@@ -396,12 +396,16 @@ const event = ref<any>(null);
 const payments = ref<any[]>([]);
 const services = ref<any[]>([]);
 const activities = ref<any[]>([]);
-const financials = ref<any>(null); // Add this line
 const loading = ref(true);
 const loadingPayments = ref(true);
 const showPaymentModal = ref(false);
 const savingPayment = ref(false);
-const selectedStatus = ref(''); // For status update dropdown
+const selectedStatus = ref('');
+
+// Create a computed property for financials
+const financials = computed(() => {
+  return event.value?.financials || {};
+});
 
 const paymentForm = ref({
   amount: null as number | null,
@@ -422,11 +426,13 @@ const fetchEvent = async () => {
       }
     });
     
+    console.log('API Response:', response); // Debug log
+    console.log('Event financials:', response.event?.financials); // Debug log
+    
     event.value = response.event || response.data;
     payments.value = response.payments || [];
     services.value = response.services || [];
     activities.value = response.activities || [];
-    financials.value = response.financials || {}; // Add this line
   } catch (error: any) {
     console.error('Failed to fetch event:', error);
     if (error.statusCode === 401) {
