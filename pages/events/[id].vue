@@ -410,7 +410,7 @@ const financials = computed(() => {
 const paymentForm = ref({
   amount: null as number | null,
   payment_method: '',
-  payment_type: 'deposit',
+  payment_type: '',
   reference_number: '',
   payment_date: new Date().toISOString().split('T')[0],
   notes: ''
@@ -449,7 +449,7 @@ const openPaymentModal = () => {
   paymentForm.value = {
     amount: financials.value?.balance || null,
     payment_method: '',
-    payment_type: 'deposit',
+    payment_type: '',
     reference_number: '',
     payment_date: new Date().toISOString().split('T')[0],
     notes: ''
