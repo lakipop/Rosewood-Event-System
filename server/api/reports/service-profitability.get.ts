@@ -14,10 +14,13 @@ export default defineEventHandler(async (event) => {
     const profitabilityQuery = `
       SELECT 
         service_name,
+        unit_price,
         bookings as total_bookings,
+        quantity_sold,
+        avg_selling_price,
         revenue as total_revenue,
         estimated_cost,
-        estimated_total_profit as estimated_profit,
+        estimated_profit,
         profit_margin_pct
       FROM v_service_profitability
       WHERE bookings > 0
