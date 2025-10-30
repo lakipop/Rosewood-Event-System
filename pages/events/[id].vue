@@ -42,7 +42,7 @@
                     <option value="">Change Status</option>
                     <option value="inquiry">Inquiry</option>
                     <option value="confirmed">Confirmed</option>
-                    <option value="in_progress">In Progress</option>
+                    <!-- <option value="in_progress">In Progress</option> -->
                     <option value="completed">Completed</option>
                     <option value="cancelled">Cancelled</option>
                   </select>
@@ -525,7 +525,7 @@ const updateStatus = async () => {
     const response = await $fetch(`/api/events/${eventId}/status`, {
       method: 'PUT',
       body: {
-        status: selectedStatus.value,
+        status: selectedStatus.value,        // <--- add this
         user_id: authStore.user?.userId
       },
       headers: {
@@ -579,7 +579,15 @@ const getStatusColor = (status: string) => {
 
 const calculateServicesTotal = () => {
   return services.value.reduce((total, service) => {
-    return total + (service.subtotal || (service.quantity * service.agreed_price));
+    // Coerce values to numbers and default to 0 to avoid NaN
+    const qty = Number(service.quantity) || 0;
+    const price = Number(service.agreed_price) || 0;
+    const rawSubtotal = service.subtotal !== undefined && service.subtotal !== null
+      ? Number(service.subtotal)
+      : NaN;
+
+    const subtotal = Number.isFinite(rawSubtotal) ? rawSubtotal : qty * price;
+    return total + (Number.isFinite(subtotal) ? subtotal : 0);
   }, 0);
 };
 
