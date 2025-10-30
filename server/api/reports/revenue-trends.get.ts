@@ -22,7 +22,10 @@ export default defineEventHandler(async (event) => {
         monthly_revenue as total_revenue,
         events_count as total_events,
         avg_transaction as avg_event_revenue,
-        growth_pct as growth_rate
+        prev_month_revenue,
+        revenue_change,
+        growth_pct as growth_rate,
+        cumulative_revenue
       FROM v_revenue_trends
       ORDER BY month DESC
       LIMIT ${months}
