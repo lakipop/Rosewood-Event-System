@@ -98,6 +98,12 @@
                   >
                     ✏️ Edit
                   </button>
+                  <button 
+                    @click="openAddToEventModal(service)"
+                    class="px-3 py-1 bg-primary-600 hover:bg-primary-700 text-white rounded text-sm"
+                  >
+                    ➕ Add to Event
+                  </button>
                 </div>
               </div>
             </div>
@@ -219,6 +225,68 @@
         </form>
       </div>
     </div>
+
+    <!-- Add to Event Modal -->
+    <div 
+      v-if="showAddToEventModal"
+      class="fixed inset-0 bg-black/50 flex items-center justify-center z-50"
+      @click.self="closeAddToEventModal"
+    >
+      <div class="bg-zinc-900 rounded-lg p-8 max-w-2xl w-full mx-4 border border-zinc-800">
+        <h2 class="text-2xl font-bold text-white mb-6">Add Service to Event</h2>
+
+        <form @submit.prevent="addServiceToEvent" class="space-y-4">
+          <div>
+            <label class="block text-sm font-medium text-zinc-300 mb-2">Event ID *</label>
+            <input 
+              v-model="eventForm.event_id"
+              type="text"
+              required
+              class="w-full px-4 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-white"
+              placeholder="Enter Event ID"
+            />
+          </div>
+
+          <div>
+            <label class="block text-sm font-medium text-zinc-300 mb-2">Quantity *</label>
+            <input 
+              v-model="eventForm.quantity"
+              type="number"
+              required
+              class="w-full px-4 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-white"
+              placeholder="Enter Quantity"
+            />
+          </div>
+
+          <div>
+            <label class="block text-sm font-medium text-zinc-300 mb-2">Agreed Price *</label>
+            <input 
+              v-model="eventForm.agreed_price"
+              type="number"
+              required
+              class="w-full px-4 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-white"
+              placeholder="Enter Agreed Price"
+            />
+          </div>
+
+          <div class="flex justify-end gap-3">
+            <button 
+              type="button"
+              @click="closeAddToEventModal"
+              class="px-4 py-2 bg-zinc-700 hover:bg-zinc-600 text-white rounded-lg"
+            >
+              Cancel
+            </button>
+            <button 
+              type="submit"
+              class="px-6 py-2 bg-primary-600 hover:bg-primary-700 text-white rounded-lg"
+            >
+              Add Service
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -234,6 +302,7 @@ const selectedCategory = ref('');
 const showAddModal = ref(false);
 const editingService = ref<any>(null);
 const saving = ref(false);
+const showAddToEventModal = ref(false);
 
 const formData = ref({
   service_name: '',
@@ -242,6 +311,13 @@ const formData = ref({
   unit_price: 0,
   unit_type: '',
   is_available: true
+});
+
+const eventForm = ref({
+  event_id: '',
+  quantity: 1,
+  agreed_price: 0,
+  service_id: '', // Added service_id to the eventForm type
 });
 
 const filteredServices = computed(() => {
@@ -338,6 +414,39 @@ const saveService = async () => {
     alert(err.message || 'Failed to save service');
   } finally {
     saving.value = false;
+  }
+};
+
+const openAddToEventModal = (service: any) => {
+  eventForm.value.service_id = service.service_id;
+  showAddToEventModal.value = true;
+};
+
+const closeAddToEventModal = () => {
+  showAddToEventModal.value = false;
+  eventForm.value = { event_id: '', quantity: 1, agreed_price: 0, service_id: '' }; // Added service_id to the reset logic
+};
+
+const addServiceToEvent = async () => {
+  try {
+    const response = await $fetch<{ success: boolean; message: string }>(
+      `/api/events/${eventForm.value.event_id}/services`,
+      {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${authStore.token}`,
+        },
+        body: {
+          service_id: eventForm.value.service_id,
+          quantity: eventForm.value.quantity,
+          agreed_price: eventForm.value.agreed_price,
+        },
+      }
+    );
+    alert(response.message || 'Service added to event successfully!');
+    closeAddToEventModal();
+  } catch (error: any) {
+    alert(error.data?.message || 'Failed to add service to event.');
   }
 };
 
