@@ -111,6 +111,84 @@
             </div>
           </div>
 
+          <!-- Detailed Client Segments Table -->
+          <div class="rounded-xl overflow-hidden" style="background: rgba(39, 39, 42, 0.7); border: 1px solid rgba(196, 160, 122, 0.2);">
+            <div class="p-6">
+              <h2 class="text-lg font-bold text-zinc-100 mb-4">Client Segment Details</h2>
+              
+              <div class="overflow-x-auto">
+                <table class="w-full text-sm">
+                  <thead>
+                    <tr class="border-b border-zinc-700">
+                      <th class="text-left py-3 px-4 font-semibold text-zinc-300">Segment</th>
+                      <th class="text-right py-3 px-4 font-semibold text-zinc-300">Clients</th>
+                      <th class="text-right py-3 px-4 font-semibold text-zinc-300">% Share</th>
+                      <th class="text-right py-3 px-4 font-semibold text-zinc-300">Total Events</th>
+                      <th class="text-right py-3 px-4 font-semibold text-zinc-300">Avg Events/Client</th>
+                      <th class="text-right py-3 px-4 font-semibold text-zinc-300">Total Spent</th>
+                      <th class="text-right py-3 px-4 font-semibold text-zinc-300">Avg Event Value</th>
+                      <th class="text-right py-3 px-4 font-semibold text-zinc-300">Last Event</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr v-for="segment in segments" :key="segment.segment" 
+                        class="border-b border-zinc-800 hover:bg-zinc-800/50 transition-colors">
+                      <td class="py-4 px-4">
+                        <div class="flex items-center gap-2">
+                          <div class="w-3 h-3 rounded-full" :class="getSegmentDotClass(segment.segment)"></div>
+                          <span class="font-medium text-zinc-100">{{ segment.segment }}</span>
+                        </div>
+                      </td>
+                      <td class="text-right py-4 px-4 text-zinc-100 font-medium">
+                        {{ segment.client_count }}
+                      </td>
+                      <td class="text-right py-4 px-4">
+                        <span class="px-2 py-1 rounded-full text-xs font-semibold" 
+                              :class="getSegmentBadgeClass(segment.segment)">
+                          {{ segment.percentage }}%
+                        </span>
+                      </td>
+                      <td class="text-right py-4 px-4 text-zinc-100 font-medium">
+                        {{ segment.total_events }}
+                      </td>
+                      <td class="text-right py-4 px-4 text-zinc-300">
+                        {{ (segment.total_events / segment.client_count).toFixed(1) }}
+                      </td>
+                      <td class="text-right py-4 px-4 text-zinc-100 font-semibold">
+                        Rs. {{ formatNumber(segment.total_spent) }}
+                      </td>
+                      <td class="text-right py-4 px-4 font-semibold" 
+                          :style="getSegmentValueColor(segment.segment)">
+                        Rs. {{ formatNumber(segment.avg_event_value) }}
+                      </td>
+                      <td class="text-right py-4 px-4 text-zinc-400 text-xs">
+                        {{ formatDate(segment.last_event_date) }}
+                      </td>
+                    </tr>
+                  </tbody>
+                  <tfoot>
+                    <tr class="border-t-2 border-zinc-700 font-bold">
+                      <td class="py-4 px-4 text-zinc-100">TOTAL</td>
+                      <td class="text-right py-4 px-4 text-zinc-100">{{ totalClients }}</td>
+                      <td class="text-right py-4 px-4 text-zinc-100">100%</td>
+                      <td class="text-right py-4 px-4 text-zinc-100">{{ totalEvents }}</td>
+                      <td class="text-right py-4 px-4 text-zinc-300">
+                        {{ (totalEvents / totalClients).toFixed(1) }}
+                      </td>
+                      <td class="text-right py-4 px-4 text-zinc-100">
+                        Rs. {{ formatNumber(totalRevenue) }}
+                      </td>
+                      <td class="text-right py-4 px-4" style="color: #c4a07a;">
+                        Rs. {{ formatNumber(avgValue) }}
+                      </td>
+                      <td class="text-right py-4 px-4"></td>
+                    </tr>
+                  </tfoot>
+                </table>
+              </div>
+            </div>
+          </div>
+
           <!-- Summary Stats -->
           <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
             <div class="rounded-xl p-5" style="background: linear-gradient(135deg, rgba(196, 160, 122, 0.15) 0%, rgba(90, 63, 43, 0.08) 100%); border: 1px solid rgba(196, 160, 122, 0.3);">
@@ -236,6 +314,26 @@ const getSegmentBarClass = (segment: string) => {
     'New': 'bg-gradient-to-r from-green-600 to-green-500'
   }
   return classes[segment] || 'bg-zinc-500'
+}
+
+// Get segment dot class for table
+const getSegmentDotClass = (segment: string) => {
+  const classes: Record<string, string> = {
+    'High Value': 'bg-amber-500',
+    'Regular': 'bg-blue-500',
+    'New': 'bg-green-500'
+  }
+  return classes[segment] || 'bg-zinc-500'
+}
+
+// Get segment badge class for table
+const getSegmentBadgeClass = (segment: string) => {
+  const classes: Record<string, string> = {
+    'High Value': 'bg-amber-500/20 text-amber-400',
+    'Regular': 'bg-blue-500/20 text-blue-400',
+    'New': 'bg-green-500/20 text-green-400'
+  }
+  return classes[segment] || 'bg-zinc-500/20 text-zinc-400'
 }
 
 onMounted(async () => {

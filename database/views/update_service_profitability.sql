@@ -53,18 +53,3 @@ FROM service_costs sc
 LEFT JOIN service_bookings sb ON sc.service_id = sb.service_id
 ORDER BY estimated_profit DESC;
 
--- ==========================================
--- Testing Query
--- ==========================================
-SELECT 
-    service_name,
-    unit_price,
-    bookings,
-    quantity_sold,
-    avg_selling_price,
-    revenue,
-    estimated_cost,
-    estimated_total_profit,
-    profit_margin_pct
-FROM v_service_profitability
-WHERE bookings > 0;
