@@ -87,7 +87,7 @@
 
                   <div>
                     <p class="text-sm text-zinc-400 mb-1">Event Type</p>
-                    <p class="text-zinc-100 font-medium">{{ event.type_name || 'N/A' }}</p>
+                    <p class="text-zinc-100 font-medium">{{ event.event_type || event.type_name || 'N/A' }}</p>
                   </div>
 
                   <div>
@@ -112,43 +112,43 @@
                   <!-- Total Cost -->
                   <div>
                     <p class="text-sm text-zinc-400 mb-1">Total Cost</p>
-                    <p class="text-2xl font-bold text-zinc-100">₱{{ formatCurrency(event.financials?.total_cost || 0) }}</p>
+                    <p class="text-2xl font-bold text-zinc-100">₱{{ formatCurrency(financials?.total_cost || 0) }}</p>
                   </div>
 
                   <!-- Total Paid -->
                   <div>
                     <p class="text-sm text-zinc-400 mb-1">Total Paid</p>
-                    <p class="text-2xl font-bold text-green-400">₱{{ formatCurrency(event.financials?.total_paid || 0) }}</p>
+                    <p class="text-2xl font-bold text-green-400">₱{{ formatCurrency(financials?.total_paid || 0) }}</p>
                   </div>
 
                   <!-- Balance -->
                   <div class="pt-4 border-t border-zinc-800">
                     <p class="text-sm text-zinc-400 mb-1">Balance</p>
-                    <p :class="(event.financials?.balance || 0) > 0 ? 'text-rose-400' : 'text-green-400'" class="text-2xl font-bold">
-                      ₱{{ formatCurrency(event.financials?.balance || 0) }}
+                    <p :class="(financials?.balance || 0) > 0 ? 'text-rose-400' : 'text-green-400'" class="text-2xl font-bold">
+                      ₱{{ formatCurrency(financials?.balance || 0) }}
                     </p>
                   </div>
 
                   <!-- Payment Status Badge -->
-                  <div v-if="event.financials?.payment_status" class="pt-4 border-t border-zinc-800">
+                  <div v-if="financials?.payment_status" class="pt-4 border-t border-zinc-800">
                     <p class="text-sm text-zinc-400 mb-2">Payment Status</p>
                     <span 
                       :class="{
-                        'bg-green-900/30 text-green-400': event.financials.is_paid,
-                        'bg-yellow-900/30 text-yellow-400': !event.financials.is_paid && event.financials.total_paid > 0,
-                        'bg-red-900/30 text-red-400': event.financials.total_paid === 0
+                        'bg-green-900/30 text-green-400': financials.is_paid,
+                        'bg-yellow-900/30 text-yellow-400': !financials.is_paid && financials.total_paid > 0,
+                        'bg-red-900/30 text-red-400': financials.total_paid === 0
                       }"
                       class="px-3 py-1.5 rounded-full text-sm font-medium inline-block"
                     >
-                      {{ event.financials.payment_status }}
+                      {{ financials.payment_status }}
                     </span>
                   </div>
 
                   <!-- Days Until Event -->
-                  <div v-if="event.financials?.days_until !== null && event.status !== 'completed' && event.status !== 'cancelled'" class="pt-4 border-t border-zinc-800">
+                  <div v-if="financials?.days_until !== null && event.status !== 'completed' && event.status !== 'cancelled'" class="pt-4 border-t border-zinc-800">
                     <p class="text-sm text-zinc-400 mb-2">Days Until Event</p>
-                    <p :class="event.financials.days_until < 7 ? 'text-red-400' : 'text-zinc-200'" class="text-3xl font-bold">
-                      {{ event.financials.days_until }}
+                    <p :class="financials.days_until < 7 ? 'text-red-400' : 'text-zinc-200'" class="text-3xl font-bold">
+                      {{ financials.days_until }}
                       <span class="text-base font-normal text-zinc-400">days</span>
                     </p>
                   </div>
@@ -316,6 +316,7 @@ const event = ref<any>(null);
 const payments = ref<any[]>([]);
 const services = ref<any[]>([]);
 const activities = ref<any[]>([]);
+const financials = ref<any>(null); // Add this line
 const loading = ref(true);
 const loadingPayments = ref(true);
 const showPaymentModal = ref(false);
@@ -345,6 +346,7 @@ const fetchEvent = async () => {
     payments.value = response.payments || [];
     services.value = response.services || [];
     activities.value = response.activities || [];
+    financials.value = response.financials || {}; // Add this line
   } catch (error: any) {
     console.error('Failed to fetch event:', error);
     if (error.statusCode === 401) {
@@ -359,7 +361,7 @@ const fetchEvent = async () => {
 
 const openPaymentModal = () => {
   paymentForm.value = {
-    amount: event.value?.financials?.balance || null,
+    amount: financials.value?.balance || null,
     payment_method: '',
     payment_type: 'deposit',
     reference_number: '',
