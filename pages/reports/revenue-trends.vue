@@ -235,7 +235,7 @@ const formatNumber = (num: number) => {
 const formatMonth = (monthStr: string) => {
   const [year, month] = monthStr.split('-')
   const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
-  return `${monthNames[parseInt(month) - 1]} ${year}`
+  return `${monthNames[parseInt(month || '1') - 1]} ${year}`
 }
 
 // Get growth class
