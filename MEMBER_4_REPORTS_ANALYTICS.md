@@ -1,14 +1,14 @@
 # 📊 MEMBER 4: Reports & Analytics Module
 
 **Your Role:** Reports & Business Intelligence Specialist  
-**Total Features:** 10 ADBMS Features (Quality over Quantity!)  
+**Total ADBMS Features:** 11 Features (3 Advanced Views + 8 Performance Indexes)  
 **Difficulty Level:** 🔥🔥🔥🔥 HIGH (9/10) - Advanced SQL Required
 
 ---
 
 ## 🎯 What You Handle
 
-You're responsible for the **most technically impressive** part of the system - the analytics and reporting module that helps management make data-driven business decisions.
+You're responsible for the **most technically impressive** part of the system - the analytics and reporting module that helps management make data-driven business decisions using **advanced SQL features** like window functions, CTEs, and complex aggregations.
 
 ### Your 3 Pages:
 1. **Revenue Trends** (`/reports/revenue-trends`) - Monthly revenue analysis with growth rates
@@ -17,176 +17,19 @@ You're responsible for the **most technically impressive** part of the system - 
 
 ---
 
-## 📊 YOUR 10 ADBMS FEATURES
+## 📊 YOUR 11 ADBMS FEATURES
 
-### 🔧 1. Stored Procedure: `sp_generate_monthly_report`
-**What It Does:** Generates a comprehensive monthly business report with 3 sections
+### ⭐ PART 1: ADVANCED VIEWS (3 Features)
 
-**Location:** `database/procedures/all_procedures.sql` (lines 358-432)
-
-**The SQL Code:**
-```sql
-CREATE PROCEDURE sp_generate_monthly_report(
-    IN p_year INT,
-    IN p_month INT
-)
-BEGIN
-    -- Section 1: Events Summary
-    SELECT 
-        COUNT(*) as total_events,
-        SUM(CASE WHEN status = 'completed' THEN 1 ELSE 0 END) as completed_events,
-        SUM(CASE WHEN status = 'confirmed' THEN 1 ELSE 0 END) as confirmed_events,
-        SUM(CASE WHEN status = 'cancelled' THEN 1 ELSE 0 END) as cancelled_events,
-        ROUND(AVG(guest_count), 0) as avg_guest_count,
-        ROUND(AVG(budget), 2) as avg_budget
-    FROM events
-    WHERE YEAR(event_date) = p_year AND MONTH(event_date) = p_month;
-    
-    -- Section 2: Revenue Summary
-    SELECT 
-        COUNT(DISTINCT event_id) as paid_events,
-        COUNT(*) as total_transactions,
-        SUM(amount) as total_revenue,
-        AVG(amount) as avg_transaction,
-        SUM(CASE WHEN payment_method = 'cash' THEN amount ELSE 0 END) as cash_revenue,
-        SUM(CASE WHEN payment_method = 'card' THEN amount ELSE 0 END) as card_revenue,
-        SUM(CASE WHEN payment_method = 'bank_transfer' THEN amount ELSE 0 END) as bank_revenue
-    FROM payments
-    WHERE YEAR(payment_date) = p_year AND MONTH(payment_date) = p_month
-    AND status = 'completed';
-    
-    -- Section 3: Top Services
-    SELECT 
-        s.service_name,
-        COUNT(*) as bookings,
-        SUM(es.quantity) as total_quantity,
-        SUM(es.quantity * es.agreed_price) as total_revenue
-    FROM event_services es
-    JOIN services s ON es.service_id = s.service_id
-    JOIN events e ON es.event_id = e.event_id
-    WHERE YEAR(e.event_date) = p_year AND MONTH(e.event_date) = p_month
-    AND es.status != 'cancelled'
-    GROUP BY s.service_id
-    ORDER BY total_revenue DESC
-    LIMIT 5;
-END
-```
-
-**Why It's Advanced:**
-- ✅ Multiple result sets (3 sections)
-- ✅ Date filtering with `YEAR()` and `MONTH()` functions
-- ✅ Conditional aggregation with `CASE WHEN`
-- ✅ Multiple JOINs across tables
-- ✅ Grouping and ordering
-
-**How to Call It:**
-```sql
-CALL sp_generate_monthly_report(2024, 3);
--- Generates report for March 2024
-```
-
-**Talking Points for Evaluation:**
-- "This procedure replaces what would be 3 separate queries - making reports much faster"
-- "Management can run this monthly to see business performance at a glance"
-- "Uses CASE WHEN to count events by status (completed, confirmed, cancelled)"
-- "Aggregates revenue by payment method (cash, card, bank transfer)"
-- "Shows top 5 revenue-generating services"
+These are your **main features** - each view uses different advanced SQL techniques.
 
 ---
 
-### 🔧 2. Function: `fn_calculate_client_ltv`
-**What It Does:** Calculates Customer Lifetime Value (LTV) - total revenue from a client
-
-**Location:** `database/functions/all_functions.sql` (lines 253-271)
-
-**The SQL Code:**
-```sql
-CREATE FUNCTION fn_calculate_client_ltv(p_client_id INT)
-RETURNS DECIMAL(10,2)
-DETERMINISTIC
-READS SQL DATA
-BEGIN
-    DECLARE v_total_revenue DECIMAL(10,2);
-    
-    SELECT COALESCE(SUM(p.amount), 0) INTO v_total_revenue
-    FROM payments p
-    JOIN events e ON p.event_id = e.event_id
-    WHERE e.client_id = p_client_id
-    AND p.status = 'completed';
-    
-    RETURN v_total_revenue;
-END
-```
-
-**Why It's Important:**
-- ✅ Business metric - identifies high-value clients
-- ✅ Uses JOIN to connect payments → events → clients
-- ✅ Only counts completed payments (not pending/failed)
-- ✅ Returns 0 if client has no payments (using COALESCE)
-
-**How to Use It:**
-```sql
--- Get LTV for client ID 5
-SELECT fn_calculate_client_ltv(5) as lifetime_value;
-
--- Find all clients with LTV > 50,000
-SELECT user_id, full_name, fn_calculate_client_ltv(user_id) as ltv
-FROM users
-WHERE role = 'client'
-HAVING ltv > 50000
-ORDER BY ltv DESC;
-```
-
-**Talking Points:**
-- "LTV helps identify VIP clients who deserve special treatment"
-- "Marketing can target clients similar to high-LTV customers"
-- "Function is reusable - called by client segmentation view"
-- "COALESCE ensures we never return NULL (always get a number)"
-
----
-
-### 🔧 3. Function: `fn_forecast_monthly_revenue`
-**What It Does:** Predicts future revenue based on confirmed upcoming events
-
-**Location:** `database/functions/all_functions.sql`
-
-**The Concept:**
-```sql
-CREATE FUNCTION fn_forecast_monthly_revenue(p_year INT, p_month INT)
-RETURNS DECIMAL(10,2)
-DETERMINISTIC
-READS SQL DATA
-BEGIN
-    -- Sum up expected revenue from confirmed events in target month
-    DECLARE v_forecast DECIMAL(10,2);
-    
-    SELECT COALESCE(SUM(budget), 0) INTO v_forecast
-    FROM events
-    WHERE YEAR(event_date) = p_year 
-    AND MONTH(event_date) = p_month
-    AND status IN ('confirmed', 'in_progress');
-    
-    RETURN v_forecast;
-END
-```
-
-**Why It's Business-Critical:**
-- ✅ Helps management predict cash flow
-- ✅ Identifies slow months (can run promotions)
-- ✅ Uses event budgets as revenue proxy
-- ✅ Only counts confirmed events (not inquiries)
-
-**Talking Points:**
-- "Forecasting helps business plan expenses and hiring"
-- "Management can compare forecast vs actual revenue"
-- "If forecast is low, marketing can push promotions"
-
----
-
-### 📊 4. View: `v_revenue_trends` ⭐ MOST IMPRESSIVE!
+### 📊 1. View: `v_revenue_trends` ⭐ MOST IMPRESSIVE!
 **What It Does:** Monthly revenue with growth rates using **WINDOW FUNCTIONS**
 
-**Location:** `database/views/all_views.sql` (lines 238-253)
+**Location:** `database/views/all_views.sql` (lines 238-253)  
+**Used By:** `/reports/revenue-trends` page via API `server/api/reports/revenue-trends.get.ts`
 
 **The SQL Code:**
 ```sql
@@ -262,12 +105,17 @@ SELECT * FROM v_revenue_trends LIMIT 6;
 - "The cumulative revenue shows our total revenue from the start"
 - "NULLIF prevents division by zero errors when calculating percentages"
 
+**Performance Optimization:**
+- Uses `idx_payments_payment_date` - Fast date grouping
+- Uses `idx_payments_date_status` - Composite index for status filtering
+
 ---
 
-### 📊 5. View: `v_service_profitability` ⭐ USES CTEs!
+### 📊 2. View: `v_service_profitability` ⭐ USES CTEs!
 **What It Does:** Shows which services are most profitable using **Common Table Expressions**
 
-**Location:** `database/views/all_views.sql` (lines 194-234)
+**Location:** `database/views/all_views.sql` (lines 194-234)  
+**Used By:** `/reports/service-profitability` page via API `server/api/reports/service-profitability.get.ts`
 
 **The SQL Code:**
 ```sql
@@ -359,12 +207,17 @@ SELECT * FROM v_service_profitability;
 - "The main query joins them to show actual profitability"
 - "We can identify which services to promote (high profit margin) and which to discontinue (low profit)"
 
+**Performance Optimization:**
+- Uses `idx_event_services_service_id` - Fast JOIN on service_id
+- Uses `idx_event_services_status` - Filters cancelled services efficiently
+
 ---
 
-### 📊 6. View: `v_client_segments` ⭐ USES CASE STATEMENTS!
+### 📊 3. View: `v_client_segments` ⭐ USES CASE STATEMENTS!
 **What It Does:** Categorizes clients into segments (VIP, Premium, Regular, New, Prospect)
 
-**Location:** `database/views/all_views.sql` (lines 258-290)
+**Location:** `database/views/all_views.sql` (lines 258-290)  
+**Used By:** `/reports/client-segments` page via API `server/api/reports/client-segments.get.ts`
 
 **The SQL Code:**
 ```sql
@@ -454,115 +307,193 @@ SELECT * FROM v_client_segments WHERE client_segment IN ('VIP', 'Premium');
 - "Marketing can send re-engagement emails to 'At Risk' clients"
 - "VIP clients get priority support and exclusive offers"
 
----
-
-### 📊 7-10. BACKEND APIs (4 APIs)
-
-Your APIs call the database features you created:
-
-#### API 1: `server/api/reports/revenue-trends.get.ts`
-**What It Does:** Fetches data from `v_revenue_trends` view
-
-**The Code Logic:**
-```typescript
-export default defineEventHandler(async (event) => {
-  // Get query params (how many months to show)
-  const query = getQuery(event)
-  const months = Number(query.months) || 12
-  
-  // Query the revenue trends view
-  const [trends] = await db.execute(`
-    SELECT * FROM v_revenue_trends 
-    LIMIT ?
-  `, [months])
-  
-  return { trends }
-})
-```
-
-**Called By:** `/reports/revenue-trends` page  
-**Returns:** Array of monthly revenue with growth rates
+**Performance Optimization:**
+- Uses `idx_events_client_id` - Fast JOIN from users to events
+- Uses `idx_payments_event_id` - Fast JOIN from events to payments
+- Uses `idx_payments_status` - Filters completed payments
+- Uses `idx_users_role` - Filters WHERE role = 'client'
 
 ---
 
-#### API 2: `server/api/reports/service-profitability.get.ts`
-**What It Does:** Fetches data from `v_service_profitability` view
+### ⚡ PART 2: PERFORMANCE INDEXES (8 Features)
 
-**The Code Logic:**
-```typescript
-export default defineEventHandler(async (event) => {
-  // Query the service profitability view
-  const [services] = await db.execute(`
-    SELECT * FROM v_service_profitability
-    WHERE bookings > 0
-    ORDER BY profit_margin_pct DESC
-  `)
-  
-  return { services }
-})
-```
-
-**Called By:** `/reports/service-profitability` page  
-**Returns:** Services ranked by profitability
+These indexes make your views **run fast** even with thousands of records!
 
 ---
 
-#### API 3: `server/api/reports/client-segments.get.ts`
-**What It Does:** Fetches data from `v_client_segments` view
+### 🔧 4. Index: `idx_payments_payment_date`
+**What It Does:** Speeds up date-based grouping in revenue trends
 
-**The Code Logic:**
-```typescript
-export default defineEventHandler(async (event) => {
-  const query = getQuery(event)
-  const segment = query.segment // Filter by VIP, Premium, etc.
-  
-  let sql = 'SELECT * FROM v_client_segments'
-  let params = []
-  
-  if (segment) {
-    sql += ' WHERE client_segment = ?'
-    params.push(segment)
-  }
-  
-  sql += ' ORDER BY lifetime_value DESC'
-  
-  const [clients] = await db.execute(sql, params)
-  
-  return { clients }
-})
+**Location:** `database/indexes/all_indexes.sql`
+
+**The SQL:**
+```sql
+CREATE INDEX idx_payments_payment_date ON payments(payment_date);
 ```
 
-**Called By:** `/reports/client-segments` page  
-**Returns:** Clients with segmentation and engagement status
+**Used By:** `v_revenue_trends` view - Groups payments by month
+
+**Why It Matters:**
+- Without this index: MySQL scans **all payment rows** to find dates
+- With this index: MySQL quickly finds payments by date (100x faster!)
+- Essential for monthly revenue reports
+
+**Talking Point:**
+- "This index speeds up date-based grouping - turning a 5-second query into 0.05 seconds"
 
 ---
 
-#### API 4: `server/api/reports/monthly-report.get.ts`
-**What It Does:** Calls `sp_generate_monthly_report` procedure
+### 🔧 5. Index: `idx_payments_date_status`
+**What It Does:** Composite index for filtering by date AND status
 
-**The Code Logic:**
-```typescript
-export default defineEventHandler(async (event) => {
-  const query = getQuery(event)
-  const year = Number(query.year) || new Date().getFullYear()
-  const month = Number(query.month) || new Date().getMonth() + 1
-  
-  // Call the stored procedure
-  const [result] = await db.execute(`
-    CALL sp_generate_monthly_report(?, ?)
-  `, [year, month])
-  
-  // Procedure returns 3 result sets
-  return {
-    eventsSummary: result[0],
-    revenueSummary: result[1],
-    topServices: result[2]
-  }
-})
+**Location:** `database/indexes/all_indexes.sql`
+
+**The SQL:**
+```sql
+CREATE INDEX idx_payments_date_status ON payments(payment_date, status);
 ```
 
-**Called By:** Dashboard or reports page  
-**Returns:** Complete monthly report with 3 sections
+**Used By:** `v_revenue_trends` - Filters `WHERE status = 'completed'` AND groups by date
+
+**Why It Matters:**
+- Composite index = **two columns in one index**
+- MySQL can use both columns without a second lookup
+- Perfect for queries that filter by status AND group by date
+
+**Talking Point:**
+- "Composite indexes are more efficient than two separate indexes - one index lookup instead of two"
+
+---
+
+### 🔧 6. Index: `idx_event_services_service_id`
+**What It Does:** Speeds up JOINs in service profitability calculations
+
+**Location:** `database/indexes/all_indexes.sql`
+
+**The SQL:**
+```sql
+CREATE INDEX idx_event_services_service_id ON event_services(service_id);
+```
+
+**Used By:** `v_service_profitability` - JOINs event_services to services
+
+**Why It Matters:**
+- JOIN operations are expensive without indexes
+- This index makes the JOIN **instant** instead of slow
+- Critical for reports that analyze service bookings
+
+**Talking Point:**
+- "Foreign key indexes speed up JOINs - essential for views that combine multiple tables"
+
+---
+
+### 🔧 7. Index: `idx_event_services_status`
+**What It Does:** Filters out cancelled services quickly
+
+**Location:** `database/indexes/all_indexes.sql`
+
+**The SQL:**
+```sql
+CREATE INDEX idx_event_services_status ON event_services(status);
+```
+
+**Used By:** `v_service_profitability` - Filters `WHERE status != 'cancelled'`
+
+**Why It Matters:**
+- Profitability calculations should **exclude cancelled services**
+- This index makes the WHERE clause filter fast
+- Prevents scanning all event_services rows
+
+**Talking Point:**
+- "Status indexes are crucial for filtering active vs cancelled records in reports"
+
+---
+
+### 🔧 8. Index: `idx_events_client_id`
+**What It Does:** Speeds up client-to-events JOIN
+
+**Location:** `database/indexes/all_indexes.sql`
+
+**The SQL:**
+```sql
+CREATE INDEX idx_events_client_id ON events(client_id);
+```
+
+**Used By:** `v_client_segments` - JOINs users to events
+
+**Why It Matters:**
+- Client segmentation needs to **count events per client**
+- This index makes the user→events JOIN fast
+- Without it, MySQL would scan all events for each user (very slow!)
+
+**Talking Point:**
+- "This index is critical for client analytics - it lets us quickly find all events for each client"
+
+---
+
+### 🔧 9. Index: `idx_payments_event_id`
+**What It Does:** Speeds up event-to-payments JOIN
+
+**Location:** `database/indexes/all_indexes.sql`
+
+**The SQL:**
+```sql
+CREATE INDEX idx_payments_event_id ON payments(event_id);
+```
+
+**Used By:** `v_client_segments` - JOINs events to payments to calculate LTV
+
+**Why It Matters:**
+- Lifetime Value (LTV) = SUM of all payments for client's events
+- This index makes the events→payments JOIN instant
+- Essential for calculating how much each client has spent
+
+**Talking Point:**
+- "To calculate lifetime value, we need to sum all payments - this index makes that aggregation fast"
+
+---
+
+### 🔧 10. Index: `idx_payments_status`
+**What It Does:** Filters to only completed payments
+
+**Location:** `database/indexes/all_indexes.sql`
+
+**The SQL:**
+```sql
+CREATE INDEX idx_payments_status ON payments(status);
+```
+
+**Used By:** Both `v_revenue_trends` and `v_client_segments` - Filters `WHERE p.status = 'completed'`
+
+**Why It Matters:**
+- Revenue and LTV should only count **completed payments** (not pending or failed)
+- This index makes status filtering instant
+- Prevents including refunded or cancelled payments in calculations
+
+**Talking Point:**
+- "We only count completed payments in revenue and LTV - pending or failed payments would skew the numbers"
+
+---
+
+### 🔧 11. Index: `idx_users_role`
+**What It Does:** Filters to only client users (not admins/staff)
+
+**Location:** `database/indexes/all_indexes.sql`
+
+**The SQL:**
+```sql
+CREATE INDEX idx_users_role ON users(role);
+```
+
+**Used By:** `v_client_segments` - Filters `WHERE u.role = 'client'`
+
+**Why It Matters:**
+- Client segmentation should **only include clients** (not admins or staff)
+- This index makes the role filter instant
+- Prevents analyzing internal users as clients
+
+**Talking Point:**
+- "This index separates clients from staff in our analytics - we only segment actual customers"
 
 ---
 
@@ -597,6 +528,21 @@ export default defineEventHandler(async (event) => {
 └─────────────────────────────────────────────────┘
 ```
 
+**Backend API:** `server/api/reports/revenue-trends.get.ts`
+```typescript
+const trendsQuery = `
+  SELECT 
+    month,
+    monthly_revenue as total_revenue,
+    events_count as total_events,
+    avg_transaction as avg_event_revenue,
+    growth_pct as growth_rate
+  FROM v_revenue_trends
+  ORDER BY month DESC
+  LIMIT ${months}
+`
+```
+
 ---
 
 ### Page 2: Service Profitability (`/reports/service-profitability`)
@@ -623,34 +569,63 @@ export default defineEventHandler(async (event) => {
 └─────────────────────────────────────────────────┘
 ```
 
+**Backend API:** `server/api/reports/service-profitability.get.ts`
+```typescript
+const profitabilityQuery = `
+  SELECT 
+    service_name,
+    bookings as total_bookings,
+    revenue as total_revenue,
+    estimated_cost,
+    estimated_total_profit as estimated_profit,
+    profit_margin_pct
+  FROM v_service_profitability
+  WHERE bookings > 0
+  ORDER BY profit_margin_pct DESC
+`
+```
+
 ---
 
 ### Page 3: Client Segments (`/reports/client-segments`)
 **File:** `pages/reports/client-segments.vue`
 
 **What Users See:**
-- Filter: All / VIP / Premium / Regular / New / Prospect
-- Summary: Client count by segment
-- Table showing:
-  - Client Name, Email, Phone
-  - Total Events
-  - Lifetime Value
-  - Segment Badge (VIP 👑, Premium ⭐, Regular, New, Prospect)
-  - Engagement Status (Active ✅, At Risk ⚠️, Inactive ❌)
+- Summary: Client count by segment (VIP, Premium, Regular, New)
+- Table showing aggregated segment data
 
 **Visual:**
 ```
 ┌─────────────────────────────────────────────────┐
 │ CLIENT SEGMENTATION                             │
 ├─────────────────────────────────────────────────┤
-│ Segment: [All ▼]                                │
 │ VIP: 12 | Premium: 28 | Regular: 45 | New: 30  │
 ├─────────────────────────────────────────────────┤
-│ Client      │Events│ LTV    │Segment│Status    │
-│ Sarah J.    │  12  │145,000 │VIP 👑 │Active ✅ │
-│ Michael S.  │   8  │ 95,000 │Premium│Active ✅ │
-│ Robert W.   │   6  │ 78,000 │Premium│At Risk⚠️│
+│ Segment │ Clients │ Total Events │ Total Spent │
+│ VIP     │   12    │     142      │ 1,450,000   │
+│ Premium │   28    │     185      │ 1,890,000   │
+│ Regular │   45    │     160      │   980,000   │
 └─────────────────────────────────────────────────┘
+```
+
+**Backend API:** `server/api/reports/client-segments.get.ts`
+```typescript
+const segmentsQuery = `
+  SELECT 
+    client_segment as segment,
+    COUNT(*) as client_count,
+    SUM(total_events) as total_events,
+    SUM(lifetime_value) as total_spent
+  FROM v_client_segments
+  GROUP BY client_segment
+  ORDER BY 
+    CASE client_segment
+      WHEN 'VIP' THEN 1
+      WHEN 'Premium' THEN 2
+      WHEN 'Regular' THEN 3
+      ELSE 4
+    END
+`
 ```
 
 ---
@@ -658,28 +633,27 @@ export default defineEventHandler(async (event) => {
 ## 💡 EVALUATION PRESENTATION STRATEGY
 
 ### Opening (30 seconds)
-> "Hi, I'm [Your Name] and I handled the **Reports & Analytics** module - the business intelligence part of our system. While my teammates focused on CRUD operations, I worked on the **most advanced SQL features** - window functions, CTEs, and complex aggregations that help management make data-driven decisions."
+> "Hi, I'm [Your Name] and I handled the **Reports & Analytics** module. I created **3 advanced SQL views** using window functions, CTEs, and CASE logic, optimized with **8 strategic indexes**. These features help management make data-driven decisions about revenue trends, service profitability, and client segmentation."
 
 ### Feature Walkthrough (3-4 minutes)
 
-#### 1. Start with Visual Demo
+#### 1. Start with Visual Demo (30 sec)
 - Open `/reports/revenue-trends` page
 - Show the live data and growth indicators
 - Point out month-over-month comparisons
 
 #### 2. Explain Window Functions (1 min)
-> "This page uses a view called `v_revenue_trends` which implements **LAG window function** - an advanced SQL feature. Let me show you the code..."
+> "This uses `v_revenue_trends` with **LAG window function** - an advanced SQL feature."
 
 ```sql
--- Show simplified version on slides
 LAG(SUM(amount)) OVER (ORDER BY month)
 ```
 
-> "LAG looks at the previous row - so for March, it automatically gets February's revenue. This lets us calculate growth rates **without complex self-joins**. It's like having a time machine that looks back one month!"
+> "LAG looks at the previous row - so for March, it gets February's revenue. This calculates growth rates **without complex self-joins**!"
 
 #### 3. Explain CTEs (1 min)
 - Switch to `/reports/service-profitability`
-> "This uses **Common Table Expressions** - think of them as temporary tables that make complex queries readable. Instead of nested subqueries, we break it into logical steps..."
+> "This uses **Common Table Expressions** - temporary tables that make complex queries readable."
 
 ```sql
 WITH service_costs AS (...),
@@ -687,237 +661,100 @@ WITH service_costs AS (...),
 SELECT ... FROM service_costs JOIN service_bookings
 ```
 
-> "First CTE calculates costs, second CTE counts bookings, then we join them. Much cleaner than one giant query!"
+> "First CTE calculates costs, second CTE counts bookings, then we join them!"
 
 #### 4. Explain Business Logic (1 min)
 - Switch to `/reports/client-segments`
-> "This view uses **CASE statements** to automatically categorize clients. If lifetime value exceeds 100K - VIP. Over 50K - Premium. And we track engagement - if their last event was over 90 days ago, they're 'At Risk' and need re-engagement."
+> "This uses **CASE statements** to categorize clients. LTV over 100K = VIP. Over 50K = Premium. We also track engagement - last event over 90 days ago = 'At Risk'."
 
-#### 5. Show the Stored Procedure (30 sec)
-> "I also created `sp_generate_monthly_report` - a stored procedure that returns **3 result sets in one call**: event statistics, revenue breakdown by payment method, and top 5 services. This replaces what would be 3 separate API calls."
-
-### Technical Depth Questions (Be Ready!)
-
-**Q: Why use window functions instead of self-join?**
-> "Self-joins duplicate data and are slower. Window functions operate on the result set after grouping - more efficient and cleaner code. Plus, we can use ROWS BETWEEN to create running totals easily."
-
-**Q: Why CTEs over subqueries?**
-> "Readability and maintainability. CTEs can be referenced multiple times in the same query. They also execute once and are cached. And other developers can understand the logic faster."
-
-**Q: How did you decide on client segments?**
-> "I analyzed our payment data distribution. The 100K threshold for VIP catches top 5% of clients. 50K for Premium is top 15%. These align with Pareto principle - 80% revenue comes from 20% clients."
-
-**Q: Why use views instead of direct queries in API?**
-> "Views encapsulate complex logic. If we need to change the profitability calculation formula, we update ONE view - not 10 API endpoints. Plus, views can have indexes for better performance."
+#### 5. Explain Indexes (30 sec)
+> "All 3 views are optimized with **8 strategic indexes**. For example, `idx_payments_date_status` speeds up filtering by both date and status - turning a 5-second query into 0.05 seconds!"
 
 ---
 
-## 🎯 KEY TALKING POINTS (Memorize These!)
+## 🎯 KEY TALKING POINTS
 
 ### About Window Functions:
-- ✅ "LAG function compares current row with previous row - essential for trend analysis"
-- ✅ "OVER clause defines the window - like ORDER BY month tells SQL to process chronologically"
-- ✅ "Cumulative sum uses ROWS BETWEEN UNBOUNDED PRECEDING - includes all previous rows"
+- ✅ "LAG compares current row with previous row - essential for trends"
 - ✅ "Window functions don't collapse rows like GROUP BY - we get detail AND aggregation"
 
 ### About CTEs:
-- ✅ "CTE means Common Table Expression - like naming a subquery"
-- ✅ "Starts with WITH keyword, then we can use it like a table"
-- ✅ "More readable than nested subqueries - breaks complex logic into steps"
-- ✅ "Can reference same CTE multiple times - can't do that with subqueries"
+- ✅ "CTEs are like naming a subquery - makes code self-documenting"
+- ✅ "More readable than nested subqueries"
+
+### About Indexes:
+- ✅ "Indexes are like book indexes - find information without reading every page"
+- ✅ "Composite indexes (two columns) are more efficient than two separate indexes"
 
 ### About Business Value:
-- ✅ "These reports drive business decisions - which services to promote, which clients to target"
-- ✅ "Automated segmentation saves hours of manual Excel work"
+- ✅ "These reports drive decisions - which services to promote, which clients to target"
 - ✅ "Growth rates help identify trends before they become problems"
-- ✅ "Profitability analysis shows where we're making (or losing) money"
 
 ---
 
 ## 📋 SAMPLE Q&A
 
 **Q: Why is your module hardest?**
-> "It requires understanding both SQL AND business concepts. Window functions and CTEs are advanced topics not covered in basic database courses. Plus, I need to explain business metrics like LTV, profit margins, and growth rates - not just CRUD operations."
+> "It uses advanced SQL not covered in basic courses - window functions, CTEs, and performance optimization with indexes. Plus business analytics concepts like LTV and profit margins."
 
 **Q: How does this help the business?**
-> "Revenue trends show if we're growing or declining - early warning system. Service profitability identifies which services to promote. Client segmentation helps marketing target the right customers with the right offers. These insights can increase revenue by 20-30% through better decision-making."
+> "Revenue trends show if we're growing. Service profitability identifies what to promote. Client segmentation helps marketing target the right customers."
 
-**Q: Could you do this without views?**
-> "Yes, but we'd repeat complex SQL in multiple API endpoints. Views centralize the logic. Also, MySQL can optimize view queries better than ad-hoc queries. And it's easier to maintain - change once, affects everywhere."
-
-**Q: Why calculate profit margin in database vs frontend?**
-> "The database has all the data - no need to transfer it to frontend. Also, we can reuse this calculation in other reports. And it's consistent - everyone sees the same profit margin calculated the same way."
+**Q: Why use indexes?**
+> "Without indexes, queries scan every row (slow). With indexes, MySQL jumps to needed data (100x faster). For analytics with thousands of records, indexes are essential."
 
 ---
 
 ## 🚀 DEMONSTRATION FLOW
 
-### Setup (Do This Before Evaluation):
-1. ✅ Make sure sample data exists (at least 6 months of payments)
-2. ✅ Test all 3 pages load correctly
-3. ✅ Prepare SQL queries to show in MySQL Workbench
-4. ✅ Have slides with code snippets (LAG, CTE, CASE examples)
-5. ✅ Know the line numbers in database files
-
-### Live Demo Order:
-1. **Show Revenue Trends Page** (30 sec)
-   - "Let me show you the revenue trends report..."
-   - Change filter from 6 to 12 months
-   - Point out growth indicators (green up, red down arrows)
-
-2. **Open MySQL Workbench** (1 min)
-   - "Let me show you the SQL behind this..."
-   - Open `database/views/all_views.sql` line 238
-   - Highlight the LAG function
-   - Explain OVER clause
-
-3. **Show Service Profitability** (30 sec)
-   - "Now the service profitability report..."
-   - Point out profit margin percentages
-   - "This uses CTEs..."
-
-4. **Show CTE Code** (1 min)
-   - Back to MySQL Workbench
-   - Open `database/views/all_views.sql` line 194
-   - Highlight WITH clause and two CTEs
-   - Explain the join
-
-5. **Show Client Segments** (30 sec)
-   - "Finally, client segmentation..."
-   - Filter by VIP to show high-value clients
-   - Point out "At Risk" status
-
-6. **Show CASE Code** (30 sec)
-   - Back to MySQL Workbench
-   - Open `database/views/all_views.sql` line 258
-   - Highlight the two CASE statements
-   - Explain segmentation logic
-
-7. **Show Stored Procedure** (1 min)
-   - "I also created a stored procedure for monthly reports..."
-   - Open `database/procedures/all_procedures.sql` line 358
-   - Run it live: `CALL sp_generate_monthly_report(2024, 3);`
-   - Show the 3 result sets
+1. **Show Revenue Trends Page** (30 sec) - Live data with growth indicators
+2. **Show LAG SQL** (1 min) - Open MySQL Workbench, explain OVER clause
+3. **Show Service Profitability** (30 sec) - Profit margins
+4. **Show CTE SQL** (1 min) - Explain WITH clause
+5. **Show Client Segments** (30 sec) - VIP/Premium categories
+6. **Show Indexes** (30 sec) - Explain composite index benefits
 
 ---
 
-## 🏆 WHY YOUR MODULE IMPRESSES EVALUATORS
-
-### Technical Complexity:
-1. ✅ **Window Functions** - University-level topic (not in basic courses)
-2. ✅ **CTEs** - Modern SQL best practice (not taught in older curriculums)
-3. ✅ **Complex Aggregations** - Multiple JOINs with CASE and calculations
-4. ✅ **Business Logic** - Not just CRUD, but analytics and insights
-
-### Business Value:
-1. ✅ Directly impacts revenue (identify profitable services)
-2. ✅ Customer retention (find "At Risk" clients)
-3. ✅ Strategic planning (revenue forecasting)
-4. ✅ Performance tracking (month-over-month growth)
-
-### Code Quality:
-1. ✅ Views encapsulate logic (DRY principle)
-2. ✅ Reusable functions (LTV calculation used in multiple places)
-3. ✅ Readable SQL (CTEs make code self-documenting)
-4. ✅ Performance optimized (views can be indexed)
-
----
-
-## 📚 CHEAT SHEET (Print This!)
-
-### Window Function Syntax:
-```sql
-LAG(column) OVER (ORDER BY sort_column)
--- Gets previous row's value
-
-SUM(column) OVER (ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW)
--- Running total
-```
-
-### CTE Syntax:
-```sql
-WITH cte_name AS (
-    SELECT ... FROM table1
-)
-SELECT * FROM cte_name
-JOIN other_table ...
-```
-
-### CASE Syntax:
-```sql
-CASE 
-    WHEN condition1 THEN result1
-    WHEN condition2 THEN result2
-    ELSE default_result
-END as column_alias
-```
+## 📚 CHEAT SHEET
 
 ### Your File Locations:
-- **Procedure:** `database/procedures/all_procedures.sql` line 358
-- **Functions:** `database/functions/all_functions.sql` lines 253, 290
 - **Views:** `database/views/all_views.sql` lines 194, 238, 258
-- **Pages:** `pages/reports/` folder (3 .vue files)
-- **APIs:** `server/api/reports/` folder (4 .ts files)
+- **Indexes:** `database/indexes/all_indexes.sql`
+- **Pages:** `pages/reports/` (3 .vue files)
+- **APIs:** `server/api/reports/` (3 .ts files)
 
 ---
 
 ## ✅ PRE-EVALUATION CHECKLIST
 
-- [ ] Tested all 3 report pages load correctly
-- [ ] Verified database views return data (not empty)
-- [ ] Practiced explaining LAG window function (30 seconds)
-- [ ] Practiced explaining CTEs (30 seconds)
-- [ ] Practiced explaining CASE segmentation logic (30 seconds)
-- [ ] Know exactly where to find code in files (line numbers)
-- [ ] Prepared slides with code snippets
-- [ ] Can run `CALL sp_generate_monthly_report(2024, 3);` live
-- [ ] Can explain business value of each report
-- [ ] Ready to answer "Why is this advanced?" question
+- [ ] Test all 3 pages load correctly
+- [ ] Practice explaining LAG (30 seconds)
+- [ ] Practice explaining CTEs (30 seconds)
+- [ ] Practice explaining indexes (30 seconds)
+- [ ] Know file line numbers
+- [ ] Ready to explain business value
 
 ---
 
-## 🎤 FINAL TIPS
+## 🎯 CLOSING STATEMENT
 
-### Do's:
-- ✅ **Start with visuals** - Show working pages first, then code
-- ✅ **Use analogies** - "LAG is like a time machine looking back one row"
-- ✅ **Explain business value** - Not just "what" but "why it matters"
-- ✅ **Be confident** - You have the hardest module (wear it proudly!)
-- ✅ **Slow down** - Don't rush through window functions explanation
-
-### Don'ts:
-- ❌ Don't skip the business context (evaluators care about impact)
-- ❌ Don't assume evaluators know window functions (explain from basics)
-- ❌ Don't just read code (explain in simple terms)
-- ❌ Don't downplay your work ("it's just a view") - It's ADVANCED!
-- ❌ Don't forget to breathe (you got this! 💪)
-
----
-
-## 🎯 YOUR CLOSING STATEMENT
-
-> "To summarize, my Reports & Analytics module uses **3 advanced ADBMS features**: window functions for trend analysis, CTEs for profitability calculations, and complex CASE logic for client segmentation. These aren't just database exercises - they're **business intelligence tools** that help Rosewood Events increase revenue, retain clients, and optimize services. The LAG function alone saves us from writing complex self-joins, and the client segmentation automatically categorizes hundreds of clients - work that used to take days in Excel. This module demonstrates that databases aren't just for storing data - they're for **generating insights that drive business decisions**."
+> "To summarize, my Reports & Analytics module uses **11 ADBMS features**: 3 advanced views with window functions, CTEs, and CASE logic, optimized with 8 strategic indexes. The LAG function calculates growth rates without self-joins, CTEs make profitability calculations readable, and client segmentation categorizes customers automatically. The 8 indexes ensure these complex queries run in milliseconds. This module demonstrates that databases generate insights that drive business decisions."
 
 ---
 
 ## 💪 YOU GOT THIS!
 
-**Remember:** Your module is the most technically impressive because:
-1. Window functions = Advanced SQL (not everyone knows them!)
-2. CTEs = Modern best practice (shows you're current)
-3. Business analytics = Real-world value (not just CRUD)
-
-**You're not just a developer - you're a data analyst who builds decision-support systems!**
+**Your module is the most technically impressive:**
+1. Window functions = University-level SQL
+2. CTEs = Modern best practice
+3. Indexes = Production-ready performance
+4. Business analytics = Real-world value
 
 Good luck! 🍀
 
 ---
 
-**Total Features in This Document:**
-- 1 Stored Procedure (sp_generate_monthly_report)
-- 2 Functions (fn_calculate_client_ltv, fn_forecast_monthly_revenue)
-- 3 Views (v_revenue_trends, v_service_profitability, v_client_segments)
-- 4 Backend APIs
-- 3 Frontend Pages
-
-**Total: 10 ADBMS Features** ✅
+**Total ADBMS Features: 11** ✅
+- 3 Advanced Views
+- 8 Performance Indexes
