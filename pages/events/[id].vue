@@ -112,20 +112,20 @@
                   <!-- Total Cost -->
                   <div>
                     <p class="text-sm text-zinc-400 mb-1">Total Cost</p>
-                    <p class="text-2xl font-bold text-zinc-100">Rs:{{ formatCurrency(financials?.total_cost || 0) }}</p>
+                    <p class="text-2xl font-bold text-zinc-100">Rs{{ formatCurrency(financials?.total_cost || 0) }}</p>
                   </div>
 
                   <!-- Total Paid -->
                   <div>
                     <p class="text-sm text-zinc-400 mb-1">Total Paid</p>
-                    <p class="text-2xl font-bold text-green-400">Rs:{{ formatCurrency(financials?.total_paid || 0) }}</p>
+                    <p class="text-2xl font-bold text-green-400">Rs{{ formatCurrency(financials?.total_paid || 0) }}</p>
                   </div>
 
                   <!-- Balance -->
                   <div class="pt-4 border-t border-zinc-800">
                     <p class="text-sm text-zinc-400 mb-1">Balance</p>
                     <p :class="(financials?.balance || 0) > 0 ? 'text-rose-400' : 'text-green-400'" class="text-2xl font-bold">
-                      Rs:{{ formatCurrency(financials?.balance || 0) }}
+                      Rs{{ formatCurrency(financials?.balance || 0) }}
                     </p>
                   </div>
 
@@ -209,12 +209,12 @@
                         
                         <div>
                           <p class="text-zinc-400 mb-1">Unit Price</p>
-                          <p class="text-zinc-200 font-medium">Rs:{{ formatCurrency(service.agreed_price) }}</p>
+                          <p class="text-zinc-200 font-medium">Rs{{ formatCurrency(service.agreed_price) }}</p>
                         </div>
                         
                         <div>
                           <p class="text-zinc-400 mb-1">Subtotal</p>
-                          <p class="text-green-400 font-bold">Rs:{{ formatCurrency(service.subtotal || (service.quantity * service.agreed_price)) }}</p>
+                          <p class="text-green-400 font-bold">Rs{{ formatCurrency(service.subtotal || (service.quantity * service.agreed_price)) }}</p>
                         </div>
                         
                         <div>
@@ -236,7 +236,7 @@
                   <div class="flex justify-between items-center">
                     <span class="text-lg font-semibold text-zinc-300">Total Services Cost</span>
                     <span class="text-2xl font-bold text-green-400">
-                      Rs:{{ formatCurrency(calculateServicesTotal()) }}
+                      Rs{{ formatCurrency(calculateServicesTotal()) }}
                     </span>
                   </div>
                 </div>
@@ -410,7 +410,7 @@ const financials = computed(() => {
 const paymentForm = ref({
   amount: null as number | null,
   payment_method: '',
-  payment_type: '',
+  payment_type: 'deposit',
   reference_number: '',
   payment_date: new Date().toISOString().split('T')[0],
   notes: ''
@@ -449,7 +449,7 @@ const openPaymentModal = () => {
   paymentForm.value = {
     amount: financials.value?.balance || null,
     payment_method: '',
-    payment_type: '',
+    payment_type: 'deposit',
     reference_number: '',
     payment_date: new Date().toISOString().split('T')[0],
     notes: ''
