@@ -70,12 +70,17 @@ export default defineEventHandler(async (event) => {
       [eventId]
     );
 
+    // Merge financials into event object
+    const eventWithFinancials = {
+      ...(eventData as any)[0],
+      financials: financials[0]
+    };
+
     return {
       success: true,
-      event: (eventData as any)[0],
-      financials: financials[0],
-      services,
+      event: eventWithFinancials,
       payments,
+      services,
       activities
     };
   } catch (error: any) {
