@@ -154,8 +154,8 @@
                   </div>
 
                   <button 
-                    @click="openPaymentModal"
-                    class="w-full px-4 py-3 bg-gradient-to-r from-pink-500 to-rose-600 hover:from-pink-600 hover:to-rose-700 text-white rounded-lg font-medium transition mt-4 shadow-lg"
+                      @click="openPaymentModal"
+                      class="w-full px-4 py-3 bg-linear-to-r from-pink-500 to-rose-600 hover:from-pink-600 hover:to-rose-700 text-white rounded-lg font-medium transition mt-4 shadow-lg"
                   >
                     💳 Record Payment
                   </button>
@@ -410,7 +410,7 @@ const financials = computed(() => {
 const paymentForm = ref({
   amount: null as number | null,
   payment_method: '',
-  payment_type: 'deposit',
+  payment_type: '',
   reference_number: '',
   payment_date: new Date().toISOString().split('T')[0],
   notes: ''
@@ -449,7 +449,7 @@ const openPaymentModal = () => {
   paymentForm.value = {
     amount: financials.value?.balance || null,
     payment_method: '',
-    payment_type: 'deposit',
+    payment_type: '',
     reference_number: '',
     payment_date: new Date().toISOString().split('T')[0],
     notes: ''
