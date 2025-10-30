@@ -171,6 +171,11 @@
           {{ editingPayment ? '✏️ Edit Payment' : '➕ Record New Payment' }}
         </h2>
 
+        <!-- Error Message -->
+        <div v-if="error" class="mb-4 p-4 bg-red-900/20 border border-red-800 text-red-400 rounded-lg">
+          {{ error }}
+        </div>
+
         <form @submit.prevent="savePayment" class="space-y-4">
           <div>
             <label class="block text-sm font-medium text-zinc-300 mb-2">Event ID *</label>
@@ -211,17 +216,19 @@
           </div>
 
           <div>
-            <label class="block text-sm font-medium text-zinc-300 mb-2">Payment Type *</label>
+            <label class="block text-sm font-medium text-zinc-300 mb-2">Payment Type <span class="text-zinc-500">(Optional - auto-calculated)</span></label>
             <select 
               v-model="formData.payment_type"
-              required
               class="w-full px-4 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-white"
             >
-              <option value="">Select type</option>
-              <option value="advance">Advance</option>
-              <option value="partial">Partial</option>
-              <option value="final">Final</option>
+              <option value="">Auto-calculate based on amount</option>
+              <option value="advance">Advance (Booking deposit)</option>
+              <option value="partial">Partial (Mid-payment)</option>
+              <option value="final">Final (Complete payment)</option>
             </select>
+            <p class="text-xs text-zinc-500 mt-2">
+              Leave blank to auto-calculate: Advance if first payment, Partial if partial, Final if remaining balance is covered
+            </p>
           </div>
 
           <div>
@@ -358,24 +365,42 @@ const savePayment = async () => {
     submitting.value = true;
     error.value = null;
 
+    // Validate required fields (payment_type is now optional - it will be calculated)
+    if (!formData.value.event_id || !formData.value.amount || !formData.value.payment_method) {
+      error.value = 'Please fill in all required fields (Event ID, Amount, and Payment Method)';
+      return;
+    }
+
+    console.log('Sending payment data:', formData.value);
+
     if (editingPayment.value) {
       // Update existing payment
-      await useFetch(`/api/payments/${editingPayment.value.payment_id}`, {
+      const response = await $fetch(`/api/payments/${editingPayment.value.payment_id}`, {
         method: 'PUT',
         headers: {
           Authorization: `Bearer ${authStore.token}`
         },
         body: formData.value
       });
+      console.log('Payment updated:', response);
     } else {
       // Create new payment
-      await useFetch('/api/payments', {
+      console.log('Creating NEW payment with form data:', {
+        event_id: formData.value.event_id,
+        amount: formData.value.amount,
+        payment_method: formData.value.payment_method,
+        payment_type: formData.value.payment_type,
+        payment_type_isEmpty: !formData.value.payment_type,
+        payment_type_length: formData.value.payment_type?.length
+      });
+      const response = await $fetch('/api/payments', {
         method: 'POST',
         headers: {
           Authorization: `Bearer ${authStore.token}`
         },
         body: formData.value
       });
+      console.log('Payment created:', response);
     }
 
     closeModal();

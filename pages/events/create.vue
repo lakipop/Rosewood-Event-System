@@ -63,17 +63,17 @@
                 Event Type *
               </label>
               <select 
-                v-model="formData.event_type"
+                v-model.number="formData.event_type"
                 required
                 class="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-lg text-zinc-100 focus:ring-2 focus:ring-rose-500 focus:outline-none"
               >
                 <option value="">Select Event Type</option>
-                <option value="wedding">Wedding</option>
-                <option value="birthday">Birthday</option>
-                <option value="corporate">Corporate</option>
-                <option value="anniversary">Anniversary</option>
-                <option value="party">Party</option>
-                <option value="other">Other</option>
+                <option :value="1">Wedding</option>
+                <option :value="2">Birthday</option>
+                <option :value="3">Corporate</option>
+                <option :value="4">Anniversary</option>
+                <option :value="5">Party</option>
+                <option :value="6">Other</option>
               </select>
             </div>
 
@@ -162,6 +162,38 @@
             <!-- Client Selection removed - will be implemented later -->
             <!-- TODO: Add client selection when user management API is ready -->
 
+            <!-- Add Services Section -->
+            <div class="mt-6">
+              <h2 class="text-lg font-bold text-zinc-100 mb-4">Add Services</h2>
+
+              <div v-if="addedServices.length > 0" class="space-y-4">
+                <div 
+                  v-for="(service, index) in addedServices" 
+                  :key="index"
+                  class="flex justify-between items-center bg-zinc-900 border border-zinc-800 rounded-lg p-4"
+                >
+                  <div>
+                    <h3 class="text-zinc-100 font-medium">{{ service.service_name }}</h3>
+                    <p class="text-zinc-400 text-sm">Quantity: {{ service.quantity }} | Price: {{ service.agreed_price }}</p>
+                  </div>
+                  <button 
+                    @click="removeService(index)"
+                    class="text-red-400 hover:text-red-600"
+                  >
+                    Remove
+                  </button>
+                </div>
+              </div>
+
+              <button 
+                type="button" 
+                @click="openAddToEventModal()"
+                class="mt-4 px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white rounded-lg"
+              >
+                ➕ Add Service
+              </button>
+            </div>
+
             <!-- Submit Buttons -->
             <div class="flex gap-4 pt-4">
               <button 
@@ -174,12 +206,81 @@
               <button 
                 type="submit"
                 :disabled="saving"
-                class="flex-1 px-6 py-3 bg-gradient-to-r from-pink-500 to-rose-600 hover:from-pink-600 hover:to-rose-700 disabled:from-zinc-700 disabled:to-zinc-700 text-white rounded-lg font-medium transition shadow-lg"
+                class="flex-1 px-6 py-3 bg-linear-to-r from-pink-500 to-rose-600 hover:from-pink-600 hover:to-rose-700 disabled:from-zinc-700 disabled:to-zinc-700 text-white rounded-lg font-medium transition shadow-lg"
               >
                 {{ saving ? 'Creating...' : 'Create Event' }}
               </button>
             </div>
           </form>
+
+          <!-- Add Service to Event Modal -->
+          <div v-if="showAddToEventModal" class="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
+            <div class="bg-zinc-900 rounded-lg border border-zinc-800 max-w-md w-full p-6">
+              <div class="mb-4">
+                <h3 class="text-xl font-bold text-zinc-100">Add Service to Event</h3>
+              </div>
+
+              <div class="space-y-4">
+                <div>
+                  <label class="block text-sm font-medium text-zinc-300 mb-2">Select Service *</label>
+                  <select 
+                    v-model.number="newService.service_id"
+                    required
+                    :disabled="loadingServices"
+                    class="w-full px-4 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-zinc-100 focus:ring-2 focus:ring-rose-500 focus:outline-none disabled:opacity-50"
+                  >
+                    <option :value="null">{{ loadingServices ? 'Loading services...' : 'Select a service' }}</option>
+                    <option v-for="service in availableServices" :key="service.service_id" :value="service.service_id">
+                      {{ service.service_name }} ({{ service.category }})
+                    </option>
+                  </select>
+                </div>
+
+                <div class="grid grid-cols-2 gap-4">
+                  <div>
+                    <label class="block text-sm font-medium text-zinc-300 mb-2">Quantity *</label>
+                    <input 
+                      v-model.number="newService.quantity"
+                      type="number"
+                      min="1"
+                      required
+                      class="w-full px-4 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-zinc-100 focus:ring-2 focus:ring-rose-500 focus:outline-none"
+                      placeholder="Number of items or hours"
+                    />
+                  </div>
+
+                  <div>
+                    <label class="block text-sm font-medium text-zinc-300 mb-2">Agreed Price *</label>
+                    <input 
+                      v-model.number="newService.agreed_price"
+                      type="number"
+                      min="0"
+                      required
+                      class="w-full px-4 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-zinc-100 focus:ring-2 focus:ring-rose-500 focus:outline-none"
+                      placeholder="Total price for the service"
+                    />
+                  </div>
+                </div>
+
+                <div class="flex gap-4 pt-4">
+                  <button 
+                    type="button"
+                    @click="closeAddToEventModal"
+                    class="flex-1 px-6 py-3 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 rounded-lg font-medium transition"
+                  >
+                    Cancel
+                  </button>
+                  <button 
+                    @click="addServiceToEvent(newService)"
+                    class="flex-1 px-6 py-3 bg-primary-600 hover:bg-primary-700 text-white rounded-lg font-medium transition"
+                  >
+                    Add Service
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+
         </div>
       </main>
     </div>
@@ -201,6 +302,9 @@ const router = useRouter();
 const saving = ref(false);
 const successMessage = ref('');
 const errorMessage = ref('');
+const showAddToEventModal = ref(false); // Defined the missing variable
+const availableServices = ref<any[]>([]);
+const loadingServices = ref(false);
 
 const today = computed(() => {
   return new Date().toISOString().split('T')[0];
@@ -218,6 +322,30 @@ const formData = ref({
   client_id: authStore.user?.role === 'client' ? authStore.user.userId : null
 });
 
+const addedServices = ref<any[]>([]);
+const newService = ref({
+  service_id: null as number | null,
+  quantity: 1,
+  agreed_price: 0
+});
+
+// Fetch available services
+const fetchServices = async () => {
+  try {
+    loadingServices.value = true;
+    const response = await $fetch<any>('/api/services', {
+      headers: {
+        Authorization: `Bearer ${authStore.token}`
+      }
+    });
+    availableServices.value = response.services || [];
+  } catch (error: any) {
+    console.error('Failed to fetch services:', error);
+  } finally {
+    loadingServices.value = false;
+  }
+};
+
 const createEvent = async () => {
   try {
     saving.value = true;
@@ -225,15 +353,16 @@ const createEvent = async () => {
     successMessage.value = '';
 
     const payload = {
-      event_name: formData.value.event_name,
-      event_type: formData.value.event_type,
-      event_date: formData.value.event_date,
-      event_time: formData.value.event_time || null,
+      eventName: formData.value.event_name,
+      eventTypeId: formData.value.event_type,
+      eventDate: formData.value.event_date,
+      eventTime: formData.value.event_time || null,
       venue: formData.value.venue,
-      guest_count: formData.value.guest_count || null,
+      guestCount: formData.value.guest_count || null,
       budget: formData.value.budget || null,
-      notes: formData.value.notes || null,
-      client_id: formData.value.client_id || null
+      specialNotes: formData.value.notes || null,
+      clientId: formData.value.client_id || null,
+      services: addedServices.value // Include added services in the payload
     };
 
     const response = await $fetch<any>('/api/events', {
@@ -267,9 +396,58 @@ const goBack = () => {
   router.push('/events');
 };
 
+const openAddToEventModal = () => {
+  showAddToEventModal.value = true;
+};
+
+const closeAddToEventModal = () => {
+  showAddToEventModal.value = false;
+  // reset the temporary new service form
+  newService.value = { service_id: null, quantity: 1, agreed_price: 0 };
+};
+
+const addServiceToEvent = async (service: any) => {
+  // For create event, we don't have an event_id yet
+  // So we just add to the temporary array and save them after event creation
+  const selectedService = availableServices.value.find(s => s.service_id === service.service_id);
+  
+  if (!selectedService) {
+    errorMessage.value = 'Please select a valid service';
+    return;
+  }
+
+  const svc = {
+    service_id: service.service_id,
+    service_name: selectedService.service_name,
+    quantity: service.quantity,
+    agreed_price: service.agreed_price
+  };
+  addedServices.value.push(svc);
+  closeAddToEventModal();
+  
+  // Show success message
+  successMessage.value = 'Service added! It will be saved when you create the event.';
+  setTimeout(() => {
+    successMessage.value = '';
+  }, 3000);
+};
+
+const removeService = (index: number) => {
+  addedServices.value.splice(index, 1);
+};
+
 onMounted(() => {
   if (!authStore.user) {
     navigateTo('/auth/login');
+  } else {
+    fetchServices();
   }
 });
 </script>
+
+<style>
+/* Fixed the gradient class issue */
+.bg-gradient-to-r {
+  background: linear-gradient(to right, var(--tw-gradient-stops));
+}
+</style>

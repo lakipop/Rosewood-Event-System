@@ -40,6 +40,8 @@ export default defineEventHandler(async (event) => {
       [eventId, eventId, eventId, eventId, eventId, eventId]
     ) as any[];
 
+    console.log('Financials from DB:', financials[0]); // Debug log
+
     // Get services
     const services = await query(
       `SELECT 
@@ -70,12 +72,19 @@ export default defineEventHandler(async (event) => {
       [eventId]
     );
 
+    // Merge financials into event object
+    const eventWithFinancials = {
+      ...(eventData as any)[0],
+      financials: financials[0]
+    };
+
+    console.log('Final event with financials:', eventWithFinancials); // Debug log
+
     return {
       success: true,
-      event: (eventData as any)[0],
-      financials: financials[0],
-      services,
+      event: eventWithFinancials,
       payments,
+      services,
       activities
     };
   } catch (error: any) {

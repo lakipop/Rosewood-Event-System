@@ -7,6 +7,8 @@ export default defineEventHandler(async (event) => {
     const body = await readBody(event)
     const { service_id, quantity, agreed_price } = body
 
+    console.log('services.post: params:', { eventId, service_id, quantity, agreed_price, user: user?.userId })
+
     // Validation
     if (!eventId || !service_id || !quantity || !agreed_price) {
       throw createError({
@@ -38,52 +40,29 @@ export default defineEventHandler(async (event) => {
       })
     }
 
-    // Use stored procedure to add service with validation
-    // sp_add_event_service validates:
-    // - Service exists and is active
-    // - Service not already added to event
-    // - Agreed price is positive
-    // Triggers will:
-    // - Log activity (tr_after_service_add)
-    // - Warn if over budget (tr_budget_overrun_warning)
+    // Call stored procedure and capture output
     await query(
       'CALL sp_add_event_service(?, ?, ?, ?, @success, @message)',
       [eventId, service_id, quantity, agreed_price]
     )
 
-    // Get the procedure result
-    const result = await query('SELECT @success as success, @message as message') as any[]
-    const { success, message } = result[0]
+    const procResult = await query('SELECT @success as success, @message as message') as any[]
+    console.log('sp_add_event_service result:', procResult[0])
 
-    if (!success) {
-      throw createError({
-        statusCode: 400,
-        message: message || 'Failed to add service'
-      })
+    if (!procResult[0]?.success) {
+      throw createError({ statusCode: 400, message: procResult[0]?.message || 'Procedure failed' })
     }
 
-    // Get the added service details with subtotal
-    const addedService = await query(
-      `SELECT 
-        es.*,
-        s.service_name,
-        s.category,
-        s.unit_type,
-        s.description as service_description,
-        (es.quantity * es.agreed_price) as subtotal
-      FROM event_services es
-      JOIN services s ON es.service_id = s.service_id
-      WHERE es.event_id = ?
-      ORDER BY es.added_at DESC
-      LIMIT 1`,
-      [eventId]
+    // Optionally fetch the newly added service to return it
+    const added = await query(
+      `SELECT es.*, s.service_name, (es.quantity * es.agreed_price) AS subtotal
+       FROM event_services es JOIN services s ON es.service_id = s.service_id
+       WHERE es.event_id = ? AND es.service_id = ?
+       ORDER BY es.added_at DESC LIMIT 1`,
+      [eventId, service_id]
     ) as any[]
 
-    return {
-      success: true,
-      message: message,
-      eventService: addedService[0]
-    }
+    return { success: true, message: procResult[0].message, service: (added as any[])[0] || null }
 
   } catch (error: any) {
     console.error('Add event service error:', error)

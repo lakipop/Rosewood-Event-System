@@ -326,6 +326,37 @@
             ></textarea>
           </div>
 
+          <!-- Add Services Section for Editing -->
+          <div v-if="isEditing" class="mt-6">
+            <h2 class="text-lg font-bold text-zinc-100 mb-4">Manage Services</h2>
+
+            <div v-if="eventServices.length > 0" class="space-y-4">
+              <div 
+                v-for="(service, index) in eventServices" 
+                :key="index"
+                class="flex justify-between items-center bg-zinc-900 border border-zinc-800 rounded-lg p-4"
+              >
+                <div>
+                  <h3 class="text-zinc-100 font-medium">{{ service.service_name }}</h3>
+                  <p class="text-zinc-400 text-sm">Quantity: {{ service.quantity }} | Price: {{ service.agreed_price }}</p>
+                </div>
+                <button 
+                  @click="removeService(index)"
+                  class="text-red-400 hover:text-red-600"
+                >
+                  Remove
+                </button>
+              </div>
+            </div>
+
+            <button 
+              @click="openAddToEventModal()"
+              class="mt-4 px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white rounded-lg"
+            >
+              ➕ Add Service
+            </button>
+          </div>
+
           <div class="flex gap-4 pt-4">
             <button 
               type="button"
@@ -343,6 +374,74 @@
             </button>
           </div>
         </form>
+      </div>
+    </div>
+
+    <!-- Add Service to Event Modal -->
+    <div v-if="showAddToEventModal" class="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
+      <div class="bg-zinc-900 rounded-lg border border-zinc-800 max-w-md w-full p-6">
+        <div class="mb-4">
+          <h3 class="text-xl font-bold text-zinc-100">Add Service to Event</h3>
+        </div>
+
+        <div class="space-y-4">
+          <div>
+            <label class="block text-sm font-medium text-zinc-300 mb-2">Select Service *</label>
+            <select 
+              v-model.number="newService.service_id"
+              required
+              :disabled="loadingServices"
+              class="w-full px-4 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-zinc-100 focus:ring-2 focus:ring-rose-500 focus:outline-none disabled:opacity-50"
+            >
+              <option :value="null">{{ loadingServices ? 'Loading services...' : 'Select a service' }}</option>
+              <option v-for="service in availableServices" :key="service.service_id" :value="service.service_id">
+                {{ service.service_name }} ({{ service.category }})
+              </option>
+            </select>
+          </div>
+
+          <div class="grid grid-cols-2 gap-4">
+            <div>
+              <label class="block text-sm font-medium text-zinc-300 mb-2">Quantity *</label>
+              <input 
+                v-model.number="newService.quantity"
+                type="number"
+                min="1"
+                required
+                class="w-full px-4 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-zinc-100 focus:ring-2 focus:ring-rose-500 focus:outline-none"
+                placeholder="Number of items or hours"
+              />
+            </div>
+
+            <div>
+              <label class="block text-sm font-medium text-zinc-300 mb-2">Agreed Price *</label>
+              <input 
+                v-model.number="newService.agreed_price"
+                type="number"
+                min="0"
+                required
+                class="w-full px-4 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-zinc-100 focus:ring-2 focus:ring-rose-500 focus:outline-none"
+                placeholder="Total price for the service"
+              />
+            </div>
+          </div>
+
+          <div class="flex gap-4 pt-4">
+            <button 
+              type="button"
+              @click="closeAddToEventModal"
+              class="flex-1 px-6 py-3 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 rounded-lg font-medium transition"
+            >
+              Cancel
+            </button>
+            <button 
+              @click="addServiceToEvent(newService)"
+              class="flex-1 px-6 py-3 bg-primary-600 hover:bg-primary-700 text-white rounded-lg font-medium transition"
+            >
+              Add Service
+            </button>
+          </div>
+        </div>
       </div>
     </div>
   </div>
@@ -368,6 +467,9 @@ const filterStatus = ref('');
 const searchQuery = ref('');
 const filterStartDate = ref('');
 const filterEndDate = ref('');
+const showAddToEventModal = ref(false);
+const availableServices = ref<any[]>([]);
+const loadingServices = ref(false);
 
 const formData = ref({
   event_id: null as number | null,
@@ -381,6 +483,31 @@ const formData = ref({
   status: 'inquiry',
   special_requirements: ''
 });
+
+const newService = ref({
+  service_id: null as number | null,
+  quantity: 1,
+  agreed_price: 0
+});
+
+const eventServices = ref<any[]>([]);
+
+// Fetch available services
+const fetchServices = async () => {
+  try {
+    loadingServices.value = true;
+    const response = await $fetch<any>('/api/services', {
+      headers: {
+        Authorization: `Bearer ${authStore.token}`
+      }
+    });
+    availableServices.value = response.services || [];
+  } catch (error: any) {
+    console.error('Failed to fetch services:', error);
+  } finally {
+    loadingServices.value = false;
+  }
+};
 
 const filteredEvents = computed(() => {
   let result = events.value;
@@ -472,6 +599,7 @@ const openEditModal = (event: any) => {
     status: event.status,
     special_requirements: event.special_requirements || ''
   };
+  eventServices.value = event.services || [];
   showModal.value = true;
 };
 
@@ -485,7 +613,8 @@ const saveEvent = async () => {
 
     const payload = {
       ...formData.value,
-      client_id: authStore.user?.role === 'client' ? authStore.user.userId : formData.value.client_id
+      client_id: authStore.user?.role === 'client' ? authStore.user.userId : formData.value.client_id,
+      services: eventServices.value
     };
 
     if (isEditing.value) {
@@ -552,6 +681,62 @@ const formatCurrency = (value: number) => {
   }).format(value);
 };
 
+const openAddToEventModal = () => {
+  showAddToEventModal.value = true;
+};
+
+const closeAddToEventModal = () => {
+  showAddToEventModal.value = false;
+  newService.value = { service_id: null, quantity: 1, agreed_price: 0 };
+};
+
+const addServiceToEvent = async (service: any) => {
+  try {
+    const selectedService = availableServices.value.find(s => s.service_id === service.service_id);
+    
+    if (!selectedService) {
+      alert('Please select a valid service');
+      return;
+    }
+
+    // For edit event, we need to save to the database immediately via API
+    const response = await $fetch<{ success: boolean; message: string }>(
+      `/api/events/${formData.value.event_id}/services`,
+      {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${authStore.token}`,
+        },
+        body: {
+          service_id: service.service_id,
+          quantity: service.quantity,
+          agreed_price: service.agreed_price,
+        },
+      }
+    );
+    
+    // Add to the local array for UI feedback
+    const serviceToAdd = {
+      service_id: service.service_id,
+      service_name: selectedService.service_name,
+      quantity: service.quantity,
+      agreed_price: service.agreed_price
+    };
+    eventServices.value.push(serviceToAdd);
+    closeAddToEventModal();
+    
+    // Re-fetch events to get updated data
+    await fetchEvents();
+  } catch (error: any) {
+    console.error('Failed to add service to event:', error);
+    alert(error.data?.message || 'Failed to add service to event.');
+  }
+};
+
+const removeService = (index: number) => {
+  eventServices.value.splice(index, 1);
+};
+
 // Watch filters to re-fetch events when they change
 watch([filterStatus, searchQuery, filterStartDate, filterEndDate], () => {
   fetchEvents();
@@ -562,6 +747,7 @@ onMounted(() => {
     navigateTo('/auth/login');
   } else {
     fetchEvents();
+    fetchServices();
   }
 });
 </script>
