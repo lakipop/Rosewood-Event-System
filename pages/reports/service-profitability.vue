@@ -61,7 +61,10 @@
                 <thead style="background: rgba(196, 160, 122, 0.1);">
                   <tr>
                     <th class="px-6 py-3 text-left text-xs font-medium text-zinc-300 uppercase tracking-wider">Service</th>
+                    <th class="px-6 py-3 text-right text-xs font-medium text-zinc-300 uppercase tracking-wider">Unit Price</th>
                     <th class="px-6 py-3 text-right text-xs font-medium text-zinc-300 uppercase tracking-wider">Bookings</th>
+                    <th class="px-6 py-3 text-right text-xs font-medium text-zinc-300 uppercase tracking-wider">Qty Sold</th>
+                    <th class="px-6 py-3 text-right text-xs font-medium text-zinc-300 uppercase tracking-wider">Avg Price</th>
                     <th class="px-6 py-3 text-right text-xs font-medium text-zinc-300 uppercase tracking-wider">Revenue</th>
                     <th class="px-6 py-3 text-right text-xs font-medium text-zinc-300 uppercase tracking-wider">Est. Cost</th>
                     <th class="px-6 py-3 text-right text-xs font-medium text-zinc-300 uppercase tracking-wider">Est. Profit</th>
@@ -74,7 +77,16 @@
                       <div class="text-sm font-medium text-zinc-100">{{ service.service_name }}</div>
                     </td>
                     <td class="px-6 py-4 whitespace-nowrap text-right">
+                      <div class="text-sm text-zinc-400">Rs. {{ formatNumber(service.unit_price) }}</div>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-right">
                       <div class="text-sm text-zinc-300">{{ service.total_bookings }}</div>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-right">
+                      <div class="text-sm text-zinc-300">{{ service.quantity_sold }}</div>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-right">
+                      <div class="text-sm font-medium text-zinc-200">Rs. {{ formatNumber(service.avg_selling_price) }}</div>
                     </td>
                     <td class="px-6 py-4 whitespace-nowrap text-right">
                       <div class="text-sm font-semibold text-zinc-100">Rs. {{ formatNumber(service.total_revenue) }}</div>
@@ -94,14 +106,14 @@
                     </td>
                   </tr>
                   <tr v-if="loading">
-                    <td colspan="6" class="px-6 py-8 text-center text-zinc-400">
+                    <td colspan="9" class="px-6 py-8 text-center text-zinc-400">
                       <div class="flex justify-center">
                         <div class="w-6 h-6 border-4 rounded-full animate-spin" style="border-color: #c4a07a; border-top-color: transparent;"></div>
                       </div>
                     </td>
                   </tr>
                   <tr v-else-if="services.length === 0">
-                    <td colspan="6" class="px-6 py-8 text-center text-zinc-400">
+                    <td colspan="9" class="px-6 py-8 text-center text-zinc-400">
                       No service data available
                     </td>
                   </tr>

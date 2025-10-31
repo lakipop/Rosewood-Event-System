@@ -79,13 +79,16 @@
                     <th class="px-6 py-3 text-right text-xs font-medium text-zinc-300 uppercase tracking-wider">Revenue</th>
                     <th class="px-6 py-3 text-right text-xs font-medium text-zinc-300 uppercase tracking-wider">Events</th>
                     <th class="px-6 py-3 text-right text-xs font-medium text-zinc-300 uppercase tracking-wider">Avg/Event</th>
-                    <th class="px-6 py-3 text-right text-xs font-medium text-zinc-300 uppercase tracking-wider">Growth</th>
+                    <th class="px-6 py-3 text-right text-xs font-medium text-zinc-300 uppercase tracking-wider">Prev Month</th>
+                    <th class="px-6 py-3 text-right text-xs font-medium text-zinc-300 uppercase tracking-wider">Change</th>
+                    <th class="px-6 py-3 text-right text-xs font-medium text-zinc-300 uppercase tracking-wider">Growth %</th>
+                    <th class="px-6 py-3 text-right text-xs font-medium text-zinc-300 uppercase tracking-wider">Cumulative</th>
                   </tr>
                 </thead>
                 <tbody class="divide-y divide-zinc-700">
-                  <tr v-for="trend in trends" :key="`${trend.year}-${trend.month}`" class="hover:bg-zinc-700/50 transition-colors">
+                  <tr v-for="trend in trends" :key="trend.month" class="hover:bg-zinc-700/50 transition-colors">
                     <td class="px-6 py-4 whitespace-nowrap">
-                      <div class="text-sm font-medium text-zinc-100">{{ trend.month_name }} {{ trend.year }}</div>
+                      <div class="text-sm font-medium text-zinc-100">{{ formatMonth(trend.month) }}</div>
                     </td>
                     <td class="px-6 py-4 whitespace-nowrap text-right">
                       <div class="text-sm font-semibold text-zinc-100">Rs. {{ formatNumber(trend.total_revenue) }}</div>
@@ -97,7 +100,20 @@
                       <div class="text-sm text-zinc-300">Rs. {{ formatNumber(trend.avg_event_revenue) }}</div>
                     </td>
                     <td class="px-6 py-4 whitespace-nowrap text-right">
-                      <span v-if="trend.growth_rate !== 0" :class="getGrowthClass(trend.growth_rate)" class="px-2 py-1 text-xs rounded-full font-medium inline-flex items-center gap-1">
+                      <div class="text-sm text-zinc-400">
+                        {{ trend.prev_month_revenue ? 'Rs. ' + formatNumber(trend.prev_month_revenue) : '-' }}
+                      </div>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-right">
+                      <div v-if="trend.revenue_change" 
+                           :class="trend.revenue_change > 0 ? 'text-green-400' : trend.revenue_change < 0 ? 'text-red-400' : 'text-zinc-400'"
+                           class="text-sm font-medium">
+                        {{ trend.revenue_change > 0 ? '+' : '' }}Rs. {{ formatNumber(Math.abs(trend.revenue_change)) }}
+                      </div>
+                      <div v-else class="text-sm text-zinc-500">-</div>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-right">
+                      <span v-if="trend.growth_rate !== null && trend.growth_rate !== 0" :class="getGrowthClass(trend.growth_rate)" class="px-2 py-1 text-xs rounded-full font-medium inline-flex items-center gap-1">
                         <svg v-if="trend.growth_rate > 0" class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7" />
                         </svg>
@@ -108,16 +124,21 @@
                       </span>
                       <span v-else class="text-zinc-500 text-sm">-</span>
                     </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-right">
+                      <div class="text-sm font-semibold" style="color: #c4a07a;">
+                        Rs. {{ formatNumber(trend.cumulative_revenue) }}
+                      </div>
+                    </td>
                   </tr>
                   <tr v-if="loading">
-                    <td colspan="5" class="px-6 py-8 text-center text-zinc-400">
+                    <td colspan="8" class="px-6 py-8 text-center text-zinc-400">
                       <div class="flex justify-center">
                         <div class="w-6 h-6 border-4 rounded-full animate-spin" style="border-color: #c4a07a; border-top-color: transparent;"></div>
                       </div>
                     </td>
                   </tr>
                   <tr v-else-if="trends.length === 0">
-                    <td colspan="5" class="px-6 py-8 text-center text-zinc-400">
+                    <td colspan="8" class="px-6 py-8 text-center text-zinc-400">
                       No revenue data available
                     </td>
                   </tr>
@@ -157,20 +178,17 @@ const fetchTrends = async () => {
     })
     
     if (response.success) {
-      // Transform data: month is "YYYY-MM" format
-      trends.value = response.data.map((item: any) => {
-        const [year, month] = item.month.split('-')
-        const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
-        return {
-          month: parseInt(month),
-          year: parseInt(year),
-          month_name: monthNames[parseInt(month) - 1],
-          total_revenue: parseFloat(item.total_revenue),
-          total_events: item.total_events,
-          avg_event_revenue: parseFloat(item.avg_event_revenue),
-          growth_rate: parseFloat(item.growth_rate) || 0
-        }
-      })
+      // Keep data as-is from API
+      trends.value = response.data.map((item: any) => ({
+        month: item.month,
+        total_revenue: parseFloat(item.total_revenue),
+        total_events: item.total_events,
+        avg_event_revenue: parseFloat(item.avg_event_revenue),
+        prev_month_revenue: item.prev_month_revenue ? parseFloat(item.prev_month_revenue) : null,
+        revenue_change: item.revenue_change ? parseFloat(item.revenue_change) : null,
+        growth_rate: item.growth_rate ? parseFloat(item.growth_rate) : null,
+        cumulative_revenue: parseFloat(item.cumulative_revenue)
+      }))
       calculateSummary()
     }
   } catch (err: any) {
@@ -211,6 +229,13 @@ const calculateSummary = () => {
 // Format number
 const formatNumber = (num: number) => {
   return num?.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) || '0.00'
+}
+
+// Format month from "YYYY-MM" to "Month YYYY"
+const formatMonth = (monthStr: string) => {
+  const [year, month] = monthStr.split('-')
+  const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+  return `${monthNames[parseInt(month || '1') - 1]} ${year}`
 }
 
 // Get growth class
