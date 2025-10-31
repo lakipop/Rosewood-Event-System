@@ -17,12 +17,37 @@ export default defineEventHandler(async (event) => {
       services = []
     } = body
 
-    // Validation
-    if (!eventName || !eventTypeId || !eventDate) {
-      throw createError({
-        statusCode: 400,
-        message: 'Event name, type, and date are required'
-      })
+    // If an admin/manager is creating the event, require a clientId in the request
+    if ((user.role === 'admin' || user.role === 'manager')) {
+      if (!body.clientId) {
+        throw createError({
+          statusCode: 400,
+          message: 'clientId is required when creating an event as admin/manager'
+        })
+      }
+
+      // Optional: verify the client exists and has role = 'client'
+      // Try common id column names and ignore "unknown column" errors
+      const idColumns = ['id', 'user_id', 'userId']
+      let clientFound = false
+      for (const col of idColumns) {
+        try {
+          const q = `SELECT ${col} FROM users WHERE ${col} = ? AND role = ?`
+          const rows = await query(q, [body.clientId, 'client']) as any[]
+          if (Array.isArray(rows) && rows.length > 0) {
+            clientFound = true
+            break
+          }
+        } catch (err: any) {
+          // likely "Unknown column" — try next column name
+        }
+      }
+      if (!clientFound) {
+        throw createError({
+          statusCode: 400,
+          message: 'Selected client not found'
+        })
+      }
     }
 
     // Set client_id based on user role

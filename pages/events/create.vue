@@ -159,8 +159,23 @@
               ></textarea>
             </div>
 
-            <!-- Client Selection removed - will be implemented later -->
-            <!-- TODO: Add client selection when user management API is ready -->
+            <!-- Client Selection: visible to admins/managers -->
+            <div v-if="authStore.user?.role !== 'client'">
+              <label class="block text-sm font-medium text-zinc-300 mb-2">
+                Client *
+              </label>
+              <select
+                v-model="formData.client_id"
+                required
+                :disabled="loadingClients"
+                class="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-lg text-zinc-100 focus:ring-2 focus:ring-rose-500 focus:outline-none"
+              >
+                <option value="">{{ loadingClients ? 'Loading clients...' : 'Select a client' }}</option>
+                <option v-for="client in availableClients" :key="client.userId" :value="client.userId">
+                  {{ client.full_name || client.name || client.email }} (ID: {{ client.userId }})
+                </option>
+              </select>
+            </div>
 
             <!-- Add Services Section -->
             <div class="mt-6">
@@ -229,7 +244,7 @@
                     :disabled="loadingServices"
                     class="w-full px-4 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-zinc-100 focus:ring-2 focus:ring-rose-500 focus:outline-none disabled:opacity-50"
                   >
-                    <option :value="null">{{ loadingServices ? 'Loading services...' : 'Select a service' }}</option>
+                    <option value="">{{ loadingServices ? 'Loading services...' : 'Select a service' }}</option>
                     <option v-for="service in availableServices" :key="service.service_id" :value="service.service_id">
                       {{ service.service_name }} ({{ service.category }})
                     </option>
@@ -271,6 +286,7 @@
                     Cancel
                   </button>
                   <button 
+                    type="button"
                     @click="addServiceToEvent(newService)"
                     class="flex-1 px-6 py-3 bg-primary-600 hover:bg-primary-700 text-white rounded-lg font-medium transition"
                   >
@@ -305,6 +321,8 @@ const errorMessage = ref('');
 const showAddToEventModal = ref(false); // Defined the missing variable
 const availableServices = ref<any[]>([]);
 const loadingServices = ref(false);
+const availableClients = ref<any[]>([]);
+const loadingClients = ref(false);
 
 const today = computed(() => {
   return new Date().toISOString().split('T')[0];
@@ -346,11 +364,34 @@ const fetchServices = async () => {
   }
 };
 
+// Fetch clients for admin/manager to choose from
+const fetchClients = async () => {
+  try {
+    loadingClients.value = true;
+    const response = await $fetch<any>('/api/users?role=client', {
+      headers: { Authorization: `Bearer ${authStore.token}` }
+    });
+    // Normalize client id property to userId so the <select> binding is consistent
+    const raw = response.users || response.data || response.clients || [];
+    availableClients.value = raw.map((c: any) => ({
+      ...c,
+      userId: c.userId ?? c.id ?? c.user_id ?? c.client_id
+    }));
+  } catch (err: any) {
+    console.error('Failed to fetch clients:', err);
+    availableClients.value = [];
+  } finally {
+    loadingClients.value = false;
+  }
+};
+
 const createEvent = async () => {
   try {
     saving.value = true;
     errorMessage.value = '';
     successMessage.value = '';
+
+    const clientIdNormalized = formData.value.client_id ? Number(formData.value.client_id) : null;
 
     const payload = {
       eventName: formData.value.event_name,
@@ -361,9 +402,12 @@ const createEvent = async () => {
       guestCount: formData.value.guest_count || null,
       budget: formData.value.budget || null,
       specialNotes: formData.value.notes || null,
-      clientId: formData.value.client_id || null,
-      services: addedServices.value // Include added services in the payload
+      clientId: clientIdNormalized,
+      services: addedServices.value
     };
+
+    // DEBUG: confirm payload contents before sending
+    console.log('Creating event payload:', payload);
 
     const response = await $fetch<any>('/api/events', {
       method: 'POST',
@@ -409,10 +453,18 @@ const closeAddToEventModal = () => {
 const addServiceToEvent = async (service: any) => {
   // For create event, we don't have an event_id yet
   // So we just add to the temporary array and save them after event creation
-  const selectedService = availableServices.value.find(s => s.service_id === service.service_id);
+  const selectedService = availableServices.value.find(s => Number(s.service_id) === Number(service.service_id));
   
   if (!selectedService) {
     errorMessage.value = 'Please select a valid service';
+    return;
+  }
+
+  // ensure numeric values to avoid NaN later
+  const qty = Number(service.quantity) || 0;
+  const price = Number(service.agreed_price) || 0;
+  if (qty <= 0) {
+    errorMessage.value = 'Quantity must be at least 1';
     return;
   }
 
@@ -441,6 +493,9 @@ onMounted(() => {
     navigateTo('/auth/login');
   } else {
     fetchServices();
+    if (authStore.user?.role !== 'client') {
+      fetchClients();
+    }
   }
 });
 </script>
