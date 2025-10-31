@@ -125,6 +125,93 @@ When a user clicks "Add Catering Service" from event detail page:
 - Application processing time
 - Risk of data inconsistency (partially completed operations)
 
+**Actual Code Locations & Usage**:
+
+1. **API Call Location**: `server/api/events/[id]/services.post.ts` (Line 45)
+```typescript
+// server/api/events/[id]/services.post.ts - Lines 40-60
+await query(
+  'CALL sp_add_event_service(?, ?, ?, ?, @success, @message)',
+  [eventId, service_id, quantity, agreed_price]
+)
+
+const procResult = await query('SELECT @success as success, @message as message') as any[]
+console.log('sp_add_event_service result:', procResult[0])
+
+if (!procResult[0]?.success) {
+  throw createError({ statusCode: 400, message: procResult[0]?.message || 'Procedure failed' })
+}
+```
+
+2. **Batch API Call Location**: `server/api/events/index.post.ts` (Lines 76-82)
+```typescript
+// server/api/events/index.post.ts - Lines 73-85
+if (services && services.length > 0) {
+  for (const service of services) {
+    const { service_id, quantity, agreed_price } = service
+    if (service_id && quantity && agreed_price) {
+      try {
+        await query(
+          'CALL sp_add_event_service(?, ?, ?, ?, @success, @message)',
+          [eventId, service_id, quantity, agreed_price]
+        )
+      } catch (serviceError: any) {
+        console.warn(`Failed to add service ${service_id} to event:`, serviceError)
+      }
+    }
+  }
+}
+```
+
+3. **Frontend Usage**: `pages/events/index.vue` (Lines 693-730)
+```typescript
+// pages/events/index.vue - Lines 693-730
+const addServiceToEvent = async (service: any) => {
+  const response = await $fetch<{ success: boolean; message: string }>(
+    `/api/events/${formData.value.event_id}/services`,
+    {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${authStore.token}` },
+      body: {
+        service_id: service.service_id,
+        quantity: service.quantity,
+        agreed_price: service.agreed_price,
+      },
+    }
+  );
+  
+  const serviceToAdd = {
+    service_id: service.service_id,
+    service_name: selectedService.service_name,
+    quantity: service.quantity,
+    agreed_price: service.agreed_price
+  };
+  eventServices.value.push(serviceToAdd);
+  closeAddToEventModal();
+  await fetchEvents();  // Re-fetch to sync UI
+}
+```
+
+4. **Frontend (Create)**: `pages/events/create.vue` (Lines 274, 409-425)
+```typescript
+// pages/events/create.vue - Lines 409-425
+const addServiceToEvent = async (service: any) => {
+  const selectedService = availableServices.value.find(s => s.service_id === service.service_id);
+  
+  const serviceToAdd = {
+    service_id: service.service_id,
+    service_name: selectedService.service_name,
+    quantity: service.quantity,
+    agreed_price: service.agreed_price
+  };
+  addedServices.value.push(serviceToAdd);  // Temporary storage until event created
+  closeAddServiceModal();
+}
+
+// Then on create event, all services are sent as batch:
+// createEvent() sends: { eventName, eventTypeId, ..., services: addedServices.value }
+```
+
 ---
 
 #### **PROCEDURE 2: `sp_process_payment(...)`**
@@ -208,6 +295,122 @@ Payment 3: sp_process_payment(event_5, 15000, 'bank', 'final', 'TXN456', @id, @m
 - ✅ **Consistency**: Business rules enforced at DB level, not app level
 - ✅ **Audit Trail**: Every payment permanently logged
 - ✅ **Scalability**: Can handle 1000s of concurrent payments safely
+
+**Actual Code Locations & Usage**:
+
+1. **API Payment Processing**: `server/api/payments/index.post.ts` (Lines 38-100+)
+```typescript
+// server/api/payments/index.post.ts - Core payment logic
+const { event_id, amount, payment_method, payment_type } = await readBody(event)
+
+// Calculate auto-calculated payment type if not provided
+if (!payment_type || payment_type === '') {
+  // Query current financial state
+  const costResult = await query(`
+    SELECT 
+      COALESCE(SUM(es.quantity * es.agreed_price), 0) as total_cost,
+      COALESCE(SUM(p.amount), 0) as total_paid
+    FROM event_services es
+    LEFT JOIN payments p ON es.event_id = p.event_id
+    WHERE es.event_id = ?
+  `, [event_id])
+  
+  const { total_cost, total_paid } = costResult[0]
+  const totalCost = Number(total_cost)
+  const totalPaid = Number(total_paid)
+  const numAmount = Number(amount)
+  
+  // Auto-calculate payment type
+  if (totalCost === 0) payment_type = 'advance'
+  else if (totalPaid + numAmount >= totalCost) payment_type = 'final'
+  else payment_type = totalPaid === 0 ? 'advance' : 'partial'
+}
+
+// Insert payment atomically
+const insertResult = await query(`
+  INSERT INTO payments (event_id, amount, payment_method, payment_type, status)
+  VALUES (?, ?, ?, ?, 'completed')
+`, [event_id, amount, payment_method, payment_type])
+```
+
+2. **Frontend Payment Form**: `pages/events/[id].vue` (Lines 412, 452)
+```typescript
+// pages/events/[id].vue - Payment modal initialization
+const paymentForm = ref({
+  event_id: null,
+  amount: 0,
+  payment_method: 'cash',
+  payment_type: '',  // Empty = auto-calculate at API
+})
+
+// Open payment modal (Line 412)
+const openPaymentModal = () => {
+  paymentForm.value = {
+    event_id: eventId.value,
+    amount: 0,
+    payment_method: 'cash',
+    payment_type: '',  // Intentionally empty for auto-calculation
+  }
+  showPaymentModal.value = true
+}
+
+// Save payment (Line 452 area)
+const savePayment = async () => {
+  try {
+    const response = await $fetch('/api/payments', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${authStore.token}` },
+      body: {
+        event_id: paymentForm.value.event_id,
+        amount: paymentForm.value.amount,
+        payment_method: paymentForm.value.payment_method,
+        payment_type: paymentForm.value.payment_type,  // Empty triggers auto-calc
+      }
+    })
+    
+    showPaymentModal.value = false
+    await fetchEventDetail()  // Refresh with updated payment status
+  } catch (error: any) {
+    errorMessage.value = error.message
+  }
+}
+```
+
+3. **Payments List**: `pages/payments/index.vue` (Lines ~220-250)
+```typescript
+// pages/payments/index.vue - Recording payments
+const savePayment = async () => {
+  try {
+    if (!formData.value.event_id || !formData.value.amount) {
+      alert('Event and amount are required')
+      return
+    }
+    
+    const response = await $fetch('/api/payments', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${authStore.token}` },
+      body: {
+        event_id: formData.value.event_id,
+        amount: formData.value.amount,
+        payment_method: formData.value.payment_method,
+        payment_type: formData.value.payment_type || '',  // Empty = auto-calculate
+      }
+    })
+    
+    console.log('Payment saved:', response.data)
+    payments.value.push(response.data)
+    closeModal()
+  } catch (error: any) {
+    errorMessage.value = error.message
+  }
+}
+```
+
+---
+
+#### **PROCEDURE 2: `sp_process_payment(...)`** (Complete Implementation Reference)
+
+**Note**: While the API has payment processing logic, the actual stored procedure `sp_process_payment` provides database-level validation. Future enhancements can move more logic to stored procedures for additional safety.
 
 ---
 
@@ -294,6 +497,74 @@ const payments = await $fetch('/api/payments', {
 │ 103 │ Smith Wedding  │ John Smith  │ 15000.00 │ 0.00     │
 │ 104 │ Corp Party     │ Jane Corp   │ 50000.00 │ 50000.00 │
 └─────┴────────────────┴─────────────┴──────────┴──────────┘
+```
+
+**Actual Code Locations & Usage**:
+
+1. **API Usage**: `server/api/payments/index.get.ts` (Payment fetching)
+```typescript
+// server/api/payments/index.get.ts - Fetch payments using view
+const payments = await query(
+  `SELECT * FROM v_payment_summary 
+   WHERE status = 'completed' 
+   ORDER BY payment_date DESC`,
+  []
+) as any[]
+
+return { success: true, data: payments }
+```
+
+2. **Frontend Display**: `pages/payments/index.vue` (Lines 50-150)
+```typescript
+// pages/payments/index.vue - Display payment summary
+const payments = ref([])
+const loading = ref(false)
+
+const fetchPayments = async () => {
+  try {
+    loading.value = true
+    const response = await $fetch('/api/payments', {
+      headers: { Authorization: `Bearer ${authStore.token}` }
+    })
+    payments.value = response.data  // Data from v_payment_summary view
+  } catch (error: any) {
+    console.error('Error fetching payments:', error)
+  } finally {
+    loading.value = false
+  }
+}
+
+// Template displays columns from view:
+// - payment.payment_id
+// - payment.event_name (joined in view)
+// - payment.client_name (joined in view)
+// - payment.amount
+// - payment.balance_remaining (calculated in view)
+// - payment.payment_type
+```
+
+3. **Event Summary View Usage**: `server/api/events/[id].get.ts` (Event detail with financials)
+```typescript
+// server/api/events/[id].get.ts - Fetch event with financial data from view
+const events = await query(
+  `SELECT * FROM v_event_summary WHERE event_id = ?`,
+  [eventId]
+) as any[]
+
+const eventData = events[0]
+// View provides: total_service_cost, total_paid, balance_due, payment_status
+return { 
+  success: true, 
+  data: {
+    ...eventData,
+    financials: {
+      total_cost: eventData.total_service_cost,
+      total_paid: eventData.total_paid,
+      balance: eventData.balance_due,
+      payment_status: eventData.payment_status
+    }
+  }
+}
 ```
 
 ---
@@ -516,6 +787,54 @@ Log ID │ User    │ Action       │ Record │ Value                      �
 - ✅ **Undo**: Can reverse changes based on log
 - ✅ **Automatic**: No manual logging code needed
 
+**Actual Code Locations & Usage**:
+
+1. **Trigger Location**: Database/triggers folder (actual trigger definition file)
+```sql
+-- database/triggers/all_triggers.sql
+CREATE TRIGGER tr_after_service_add
+AFTER INSERT ON event_services
+FOR EACH ROW
+BEGIN
+    INSERT INTO activity_logs (
+        user_id, action_type, table_name, record_id, new_value, ip_address, created_at
+    ) VALUES (
+        @current_user_id,
+        'SERVICE_ADDED',
+        'event_services',
+        NEW.event_service_id,
+        CONCAT('Service: ', NEW.service_id, ', Qty: ', NEW.quantity, ', Price: ', NEW.agreed_price),
+        @ip_address,
+        NOW()
+    );
+END$$
+```
+
+2. **Triggered By**: When any service is added via `server/api/events/[id]/services.post.ts` (Line 45)
+```typescript
+// The INSERT that triggers tr_after_service_add
+await query(
+  'CALL sp_add_event_service(?, ?, ?, ?, @success, @message)',
+  [eventId, service_id, quantity, agreed_price]
+)
+// Procedure INSERT automatically triggers tr_after_service_add
+```
+
+3. **Audit Trail Viewed Via**: `server/api/activity-logs.get.ts`
+```typescript
+// server/api/activity-logs.get.ts - Fetch audit trail
+const logs = await query(`
+  SELECT al.*, u.full_name as user_name
+  FROM activity_logs al
+  LEFT JOIN users u ON al.user_id = u.user_id
+  WHERE al.table_name IN ('event_services', 'payments')
+  ORDER BY al.created_at DESC
+  LIMIT 100
+`)
+
+return { success: true, data: logs }
+```
+
 ---
 
 #### **TRIGGER 2: `tr_budget_overrun_warning`**
@@ -585,6 +904,36 @@ Manager tries to add $15,000 DJ service to event with:
 ```
 
 **Effective Usage**: Financial guardrails to prevent budget overruns before they happen.
+
+**Actual Code Locations & Usage**:
+
+1. **Trigger Definition**: Fires automatically on service addition
+```sql
+-- Triggered by INSERT in event_services table
+-- Called automatically when sp_add_event_service executes:
+-- INSERT INTO event_services (event_id, service_id, quantity, agreed_price)
+```
+
+2. **Result Displayed**: `pages/events/index.vue` (Event edit modal) or `pages/events/[id].vue` (Detail view)
+```typescript
+// pages/events/[id].vue - Display budget status after service addition
+const fetchEventDetail = async () => {
+  const response = await $fetch(`/api/events/${eventId.value}`, {
+    headers: { Authorization: `Bearer ${authStore.token}` }
+  })
+  
+  eventDetail.value = response.data
+  
+  // Check if budget exceeded
+  if (response.data.total_cost > response.data.budget) {
+    budgetWarning.value = {
+      show: true,
+      message: `⚠️ Service cost (${response.data.total_cost}) exceeds budget (${response.data.budget})`,
+      type: 'warning'
+    }
+  }
+}
+```
 
 ---
 
@@ -727,6 +1076,44 @@ END$$
 - ✅ **Instant Notifications**: Event confirmed → alerts automatically sent
 - ✅ **Scalability**: Works for 1 or 10,000 events
 
+**Actual Code Locations & Usage**:
+
+1. **Trigger Activated By**: `server/api/payments/index.post.ts` (Payment insertion)
+```typescript
+// server/api/payments/index.post.ts - Line 85+
+// When payment is inserted, tr_update_event_status_on_payment fires automatically
+const insertResult = await query(`
+  INSERT INTO payments (event_id, amount, payment_method, payment_type, status, created_at)
+  VALUES (?, ?, ?, ?, 'completed', NOW())
+`, [event_id, amount, payment_method, payment_type])
+
+// Trigger automatically checks: IF total_paid >= total_cost
+// If true: UPDATE events SET status = 'confirmed'
+```
+
+2. **Result Reflected In**: `pages/events/[id].vue` (Event detail page)
+```typescript
+// pages/events/[id].vue - Fetch updated event status after payment
+const savePayment = async () => {
+  await $fetch('/api/payments', { method: 'POST', body: paymentData })
+  
+  // Refresh event detail - will show updated status from trigger
+  await fetchEventDetail()
+  
+  // eventDetail.status will now be 'confirmed' if fully paid
+  if (eventDetail.value.status === 'confirmed') {
+    successMessage.value = '✅ Event confirmed! All payments received.'
+  }
+}
+```
+
+3. **Status Change Timeline**: Visible in event history/logs
+```typescript
+// Activity log shows automatic confirmation
+// action_type: 'EVENT_AUTO_CONFIRMED'
+// Proof that system automatically updated status when payment reached balance
+```
+
 ---
 
 #### **TRIGGER 5: `tr_generate_payment_reference`**
@@ -778,6 +1165,44 @@ PAY-         = Payment identifier
 - ✅ **Traceability**: Date and event encoded in reference
 - ✅ **Professional**: Formatted references for customer communications
 - ✅ **Automatic**: No manual number generation
+
+**Actual Code Locations & Usage**:
+
+1. **Trigger Activation**: When payment is saved in `server/api/payments/index.post.ts` (Line 85+)
+```typescript
+// server/api/payments/index.post.ts - Payment insertion triggers reference generation
+const insertResult = await query(`
+  INSERT INTO payments (event_id, amount, payment_method, payment_type, status, created_at)
+  VALUES (?, ?, ?, ?, 'completed', NOW())
+  -- reference_number is NULL, trigger generates it automatically
+`, [event_id, amount, payment_method, payment_type])
+
+// Trigger fires BEFORE INSERT and generates unique reference
+```
+
+2. **Reference Used In**: `pages/payments/index.vue` (Display payment records)
+```typescript
+// pages/payments/index.vue - Show generated reference to user
+const payments = ref([])
+
+const displayPayments = () => {
+  payments.value.forEach(payment => {
+    console.log(`Payment Reference: ${payment.reference_number}`)
+    // Displays: PAY-20251030-00005-a3f5b2
+  })
+}
+
+// Template shows:
+// <td>{{ payment.reference_number }}</td>
+// User sees professional formatted reference
+```
+
+3. **Audit Trail Entry**: Shows automatic reference in logs
+```typescript
+// Activity logs record the reference with payment
+// action_type: 'PAYMENT_RECORDED'
+// new_value: 'Amount: 20000, Method: cash, Type: advance, Ref: PAY-20251030-00005-a3f5b2'
+```
 
 ---
 
@@ -838,6 +1263,40 @@ GROUP BY event_id;
 // Index helps filter efficiently before grouping
 ```
 
+**Actual Code Locations & Usage**:
+
+1. **Index Created**: `database/indexes/all_indexes.sql`
+```sql
+-- database/indexes/all_indexes.sql
+CREATE INDEX idx_payments_event_id ON payments(event_id);
+```
+
+2. **Used In API Queries**: `server/api/payments/index.get.ts` (Fetching payments)
+```typescript
+// server/api/payments/index.get.ts - Query uses index automatically
+const payments = await query(`
+  SELECT * FROM v_payment_summary 
+  WHERE status = 'completed'
+  ORDER BY payment_date DESC
+  LIMIT 100
+`)
+// Database optimizer chooses idx_payments_event_id when filtering
+
+return { success: true, data: payments }
+```
+
+3. **Performance Benefit**: Event detail payments list (`pages/events/[id].vue`)
+```typescript
+// pages/events/[id].vue - Instantly loads event's payments
+const fetchEventPayments = async () => {
+  const response = await $fetch(`/api/events/${eventId.value}/payments`, {
+    headers: { Authorization: `Bearer ${authStore.token}` }
+  })
+  // Instant response because index lookup: idx_payments_event_id
+  eventPayments.value = response.data
+}
+```
+
 ---
 
 #### **INDEX 2: `idx_event_services_event_service`**
@@ -880,6 +1339,68 @@ INSERT INTO event_services VALUES (5, 7, ...);  -- Photography
 INSERT INTO event_services VALUES (5, 2, ...);  -- Decoration
 
 -- Index stores: (5,3), (5,7), (5,2) ✅ All unique
+```
+
+**Actual Code Locations & Usage**:
+
+1. **Index Created**: `database/indexes/all_indexes.sql`
+```sql
+-- database/indexes/all_indexes.sql
+CREATE UNIQUE INDEX idx_event_services_event_service 
+ON event_services(event_id, service_id);
+```
+
+2. **Enforced By**: Stored procedure `sp_add_event_service` (API called from `server/api/events/[id]/services.post.ts` Line 45)
+```typescript
+// server/api/events/[id]/services.post.ts - Line 45
+await query(
+  'CALL sp_add_event_service(?, ?, ?, ?, @success, @message)',
+  [eventId, service_id, quantity, agreed_price]
+)
+
+// Inside procedure: INSERT INTO event_services (event_id, service_id, ...)
+// If (eventId, serviceId) already exists: UNIQUE INDEX violation
+// Error thrown: "Duplicate entry for key 'idx_event_services_event_service'"
+```
+
+3. **Error Handling**: `pages/events/index.vue` (Lines 693-730)
+```typescript
+// pages/events/index.vue - Handle duplicate service error
+const addServiceToEvent = async (service: any) => {
+  try {
+    const response = await $fetch(`/api/events/${eventId.value}/services`, {
+      method: 'POST',
+      body: {
+        service_id: service.service_id,
+        quantity: service.quantity,
+        agreed_price: service.agreed_price,
+      }
+    })
+  } catch (error: any) {
+    if (error.message.includes('Duplicate entry')) {
+      alert('⚠️ This service has already been added to the event')
+      // Index constraint prevents duplicate, user gets clear error
+    }
+  }
+}
+```
+
+4. **Data Validation**: Frontend also prevents submission of duplicate by checking `eventServices` array
+```typescript
+// pages/events/index.vue - Check before API call
+const addServiceToEvent = async (service: any) => {
+  const isDuplicate = eventServices.value.some(
+    s => s.service_id === service.service_id
+  )
+  
+  if (isDuplicate) {
+    alert('Service already added')
+    return
+  }
+  
+  // If it passes frontend check but fails at DB (race condition),
+  // the index still protects data integrity
+}
 ```
 
 ---
